@@ -10,21 +10,16 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 CLAUDE_DIR="$HOME/.claude"
-PLUGIN_DIR="$CLAUDE_DIR/plugins/ai-assistant"
+REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PLUGINS_SOURCE_DIR="$REPO_DIR/plugins"
 
 echo -e "${BLUE}════════════════════════════════════════${NC}"
-echo -e "${BLUE}   AI-Assistant Plugin Uninstaller${NC}"
+echo -e "${BLUE}   AI-Assistant Marketplace Uninstaller${NC}"
 echo -e "${BLUE}════════════════════════════════════════${NC}"
 echo ""
 
-# 설치 확인
-if [ ! -L "$PLUGIN_DIR" ] && [ ! -d "$PLUGIN_DIR" ]; then
-    echo -e "${YELLOW}⚠ AI-Assistant is not installed${NC}"
-    exit 0
-fi
-
 # 확인 메시지
-echo -e "${YELLOW}This will remove the AI-Assistant plugin.${NC}"
+echo -e "${YELLOW}This will remove AI-Assistant marketplace plugins from Claude Code.${NC}"
 echo -e "${YELLOW}Your repository files will NOT be deleted.${NC}"
 echo ""
 read -p "Are you sure you want to uninstall? (y/n): " -n 1 -r
@@ -39,11 +34,28 @@ fi
 echo ""
 echo -e "${BLUE}🗑  Removing plugin...${NC}"
 
-if rm -rf "$PLUGIN_DIR"; then
-    echo -e "${GREEN}✓ Plugin removed successfully${NC}"
-else
-    echo -e "${RED}✗ Failed to remove plugin${NC}"
-    exit 1
+removed=false
+for plugin_source_dir in "$PLUGINS_SOURCE_DIR"/*; do
+    [ -d "$plugin_source_dir" ] || continue
+    plugin_name="$(basename "$plugin_source_dir")"
+    plugin_dir="$CLAUDE_DIR/plugins/$plugin_name"
+
+    if [ ! -L "$plugin_dir" ] && [ ! -d "$plugin_dir" ]; then
+        echo -e "${YELLOW}⚠ $plugin_name is not installed${NC}"
+        continue
+    fi
+
+    if rm -rf "$plugin_dir"; then
+        echo -e "${GREEN}✓ Removed $plugin_name${NC}"
+        removed=true
+    else
+        echo -e "${RED}✗ Failed to remove $plugin_name${NC}"
+        exit 1
+    fi
+done
+
+if [ "$removed" = false ]; then
+    echo -e "${YELLOW}No AI-Assistant marketplace plugins were installed${NC}"
 fi
 
 echo ""

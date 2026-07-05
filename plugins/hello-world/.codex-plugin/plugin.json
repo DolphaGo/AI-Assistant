@@ -1,0 +1,26 @@
+{
+  "name": "hello-world",
+  "version": "1.0.0",
+  "description": "Starter skills and utility commands for assistant workflow examples.",
+  "author": {
+    "name": "DolphaGo",
+    "url": "https://github.com/DolphaGo"
+  },
+  "repository": "https://github.com/DolphaGo/AI-Assistant",
+  "license": "MIT",
+  "keywords": ["korean", "skills", "commands", "productivity"],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Hello World",
+    "shortDescription": "Starter assistant skills and utility commands.",
+    "longDescription": "A starter plugin package with example skills and command prompts for status checks, code review, API testing, quick commits, cleanup, and search workflows.",
+    "developerName": "DolphaGo",
+    "category": "Productivity",
+    "capabilities": ["Read", "Write"],
+    "websiteURL": "https://dolphago.github.io/AI-Assistant/",
+    "defaultPrompt": [
+      "Use Hello World to check this project status.",
+      "Use Hello World to review this change in Korean."
+    ]
+  }
+}

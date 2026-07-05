@@ -1,7 +1,7 @@
 {
-  "name": "ai-assistant",
+  "name": "hello-world",
   "version": "1.0.0",
-  "description": "Korean-first reusable skills and commands for Claude Code workflows.",
+  "description": "Starter skills and utility commands for Claude Code workflow examples.",
   "author": {
     "name": "DolphaGo"
   },

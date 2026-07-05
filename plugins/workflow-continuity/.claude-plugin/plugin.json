@@ -1,0 +1,14 @@
+{
+  "name": "workflow-continuity",
+  "version": "1.0.0",
+  "description": "Strict workflow continuity protocol for handoffs, progress logs, docs, reviews, and ralph-style completion loops.",
+  "author": {
+    "name": "DolphaGo"
+  },
+  "skills": {
+    "workflow": ["skills/*/SKILL.md"]
+  },
+  "commands": {
+    "workflow": ["commands/*.md"]
+  }
+}

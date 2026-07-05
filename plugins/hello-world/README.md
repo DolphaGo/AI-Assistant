@@ -1,6 +1,6 @@
-# AI-Assistant Universal Plugin
+# Hello World Universal Plugin
 
-AI-Assistant is a small assistant plugin package for Claude Code, Codex, and OpenCode.
+Hello World is a starter plugin package for Claude Code, Codex, and OpenCode.
 
 ## Contents
 
@@ -18,7 +18,7 @@ Install this folder as a Claude Code plugin:
 
 ```bash
 mkdir -p ~/.claude/plugins
-cp -R plugins/ai-assistant ~/.claude/plugins/ai-assistant
+cp -R plugins/hello-world ~/.claude/plugins/hello-world
 ```
 
 Then restart Claude Code or run `/reload-plugins`.
@@ -26,9 +26,9 @@ Then restart Claude Code or run `/reload-plugins`.
 ## Codex
 
 The repository-level marketplace is defined at `.agents/plugins/marketplace.json`.
-From this repository, restart Codex and install `ai-assistant` from the `AI-Assistant Marketplace` source.
+From this repository, restart Codex and install `hello-world` from the `AI-Assistant Marketplace` source.
 
-For a personal marketplace, copy this plugin folder under `~/.codex/plugins/ai-assistant` and point `~/.agents/plugins/marketplace.json` at that folder.
+For a personal marketplace, copy this plugin folder under `~/.codex/plugins/hello-world` and point `~/.agents/plugins/marketplace.json` at that folder.
 
 ## OpenCode
 
@@ -36,9 +36,9 @@ Copy the OpenCode adapter directories into a project or global OpenCode config:
 
 ```bash
 mkdir -p .opencode
-cp -R plugins/ai-assistant/.opencode/skills .opencode/skills
-cp -R plugins/ai-assistant/.opencode/commands .opencode/commands
-cp plugins/ai-assistant/opencode.json opencode.json
+cp -R plugins/hello-world/.opencode/skills .opencode/skills
+cp -R plugins/hello-world/.opencode/commands .opencode/commands
+cp plugins/hello-world/opencode.json opencode.json
 ```
 
 OpenCode also reads `.agents/skills`, so the canonical `skills/*/SKILL.md` files can be copied to `.agents/skills` when you prefer the shared agent-skill location.

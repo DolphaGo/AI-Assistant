@@ -7,10 +7,18 @@
   },
   "plugins": [
     {
-      "name": "ai-assistant",
+      "name": "hello-world",
       "version": "1.0.0",
-      "description": "Korean-first reusable skills and commands for assistant workflows.",
-      "path": "./plugins/ai-assistant",
+      "description": "Starter skills and utility commands for assistant workflow examples.",
+      "path": "./plugins/hello-world",
+      "platforms": ["claude", "codex", "opencode"],
+      "category": "Productivity"
+    },
+    {
+      "name": "workflow-continuity",
+      "version": "1.0.0",
+      "description": "Strict workflow continuity protocol for handoffs, progress logs, docs, reviews, and ralph-style completion loops.",
+      "path": "./plugins/workflow-continuity",
       "platforms": ["claude", "codex", "opencode"],
       "category": "Productivity"
     }

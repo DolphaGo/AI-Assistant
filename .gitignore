@@ -1,7 +1,6 @@
 # Claude Code & OMC
 .omc/
 
-
 # Node
 node_modules/
 npm-debug.log*

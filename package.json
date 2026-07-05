@@ -2,7 +2,7 @@
   "name": "ai-assistant",
   "version": "1.0.0",
   "description": "커스텀 Claude skills & commands 모음집",
-  "main": "plugins/ai-assistant/.claude-plugin/plugin.json",
+  "main": "plugins/hello-world/.claude-plugin/plugin.json",
   "scripts": {
     "validate": "./validate.sh && ./scripts/validate-universal-package.sh",
     "install-plugin": "./install.sh",

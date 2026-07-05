@@ -10,12 +10,11 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 CLAUDE_DIR="$HOME/.claude"
-PLUGIN_DIR="$CLAUDE_DIR/plugins/ai-assistant"
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PLUGIN_SOURCE_DIR="$REPO_DIR/plugins/ai-assistant"
+PLUGINS_SOURCE_DIR="$REPO_DIR/plugins"
 
 echo -e "${BLUE}════════════════════════════════════════${NC}"
-echo -e "${BLUE}   AI-Assistant Plugin Installer${NC}"
+echo -e "${BLUE}   AI-Assistant Marketplace Installer${NC}"
 echo -e "${BLUE}════════════════════════════════════════${NC}"
 echo ""
 
@@ -44,35 +43,40 @@ fi
 echo -e "${GREEN}✓ Claude Code found${NC}"
 echo ""
 
-# 3. 기존 설치 확인
-echo -e "${BLUE}🔍 Step 3/4: Checking existing installation...${NC}"
-if [ -L "$PLUGIN_DIR" ] || [ -d "$PLUGIN_DIR" ]; then
-    echo -e "${YELLOW}⚠ Existing installation found at: $PLUGIN_DIR${NC}"
-    read -p "Do you want to update? (y/n): " -n 1 -r
-    echo
-    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-        echo -e "${YELLOW}Installation cancelled${NC}"
-        exit 0
-    fi
-    echo -e "${YELLOW}Removing old installation...${NC}"
-    rm -rf "$PLUGIN_DIR"
-fi
+# 3. plugins 디렉토리 생성
+echo -e "${BLUE}🔍 Step 3/4: Preparing plugin directory...${NC}"
+mkdir -p "$CLAUDE_DIR/plugins"
+echo -e "${GREEN}✓ Plugin directory ready${NC}"
 echo ""
 
 # 4. 심볼릭 링크 생성
-echo -e "${BLUE}🔗 Step 4/4: Creating symbolic link...${NC}"
+echo -e "${BLUE}🔗 Step 4/4: Creating symbolic links...${NC}"
 
-# plugins 디렉토리 생성
-mkdir -p "$CLAUDE_DIR/plugins"
+for plugin_source_dir in "$PLUGINS_SOURCE_DIR"/*; do
+    [ -d "$plugin_source_dir" ] || continue
+    plugin_name="$(basename "$plugin_source_dir")"
+    plugin_dir="$CLAUDE_DIR/plugins/$plugin_name"
 
-# 심볼릭 링크 생성
-if ln -s "$PLUGIN_SOURCE_DIR" "$PLUGIN_DIR"; then
-    echo -e "${GREEN}✓ Symbolic link created: $PLUGIN_DIR → $PLUGIN_SOURCE_DIR${NC}"
-else
-    echo -e "${RED}✗ Failed to create symbolic link${NC}"
-    echo -e "${YELLOW}Try running with appropriate permissions${NC}"
-    exit 1
-fi
+    if [ -L "$plugin_dir" ] || [ -d "$plugin_dir" ]; then
+        echo -e "${YELLOW}⚠ Existing installation found at: $plugin_dir${NC}"
+        read -p "Do you want to update $plugin_name? (y/n): " -n 1 -r
+        echo
+        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+            echo -e "${YELLOW}Skipping $plugin_name${NC}"
+            continue
+        fi
+        echo -e "${YELLOW}Removing old installation for $plugin_name...${NC}"
+        rm -rf "$plugin_dir"
+    fi
+
+    if ln -s "$plugin_source_dir" "$plugin_dir"; then
+        echo -e "${GREEN}✓ Symbolic link created: $plugin_dir → $plugin_source_dir${NC}"
+    else
+        echo -e "${RED}✗ Failed to create symbolic link for $plugin_name${NC}"
+        echo -e "${YELLOW}Try running with appropriate permissions${NC}"
+        exit 1
+    fi
+done
 echo ""
 
 # 5. 설치 완료 메시지
@@ -83,20 +87,22 @@ echo ""
 echo -e "${BLUE}📚 Available skills and commands:${NC}"
 echo ""
 
-# 사용 가능한 skills/commands 출력
-if [ -d "$PLUGIN_SOURCE_DIR/skills" ]; then
-    echo -e "${YELLOW}Example Skills:${NC}"
-    find "$PLUGIN_SOURCE_DIR/skills" -name "SKILL.md" -type f -exec dirname {} \; | xargs -n 1 basename | sed 's/^/  \//' || true
+for plugin_source_dir in "$PLUGINS_SOURCE_DIR"/*; do
+    [ -d "$plugin_source_dir" ] || continue
+    plugin_name="$(basename "$plugin_source_dir")"
+    echo -e "${YELLOW}$plugin_name:${NC}"
+    if [ -d "$plugin_source_dir/skills" ]; then
+        find "$plugin_source_dir/skills" -name "SKILL.md" -type f -exec dirname {} \; | xargs -n 1 basename | sed 's/^/  skill: /' || true
+    fi
+    if [ -d "$plugin_source_dir/commands" ]; then
+        find "$plugin_source_dir/commands" -name "*.md" -type f -exec basename {} .md \; | sed 's/^/  command: /' || true
+    fi
     echo ""
-fi
-if [ -d "$PLUGIN_SOURCE_DIR/commands" ]; then
-    echo -e "${YELLOW}Example Commands:${NC}"
-    find "$PLUGIN_SOURCE_DIR/commands" -name "*.md" -type f -exec basename {} .md \; | sed 's/^/  \//' || true
-    echo ""
-fi
+done
 
 echo -e "${BLUE}📖 Next steps:${NC}"
 echo "  1. Restart Claude Code (if running)"
-echo "  2. Try: /hello-world"
-echo "  3. Explore your installed skills and commands"
+echo "  2. Try: /hello-world:status-check"
+echo "  3. Try: /wf-plan"
+echo "  4. Explore your installed skills and commands"
 echo ""

@@ -9,7 +9,7 @@ nav_order: 12
 This repository now has two layers:
 
 1. The repository root is a marketplace/catalog repository.
-2. `plugins/ai-assistant/` is the installable plugin package.
+2. Each folder under `plugins/` is an installable plugin package.
 
 ## Marketplace Files
 
@@ -18,11 +18,16 @@ This repository now has two layers:
 
 ## Plugin Package
 
-`plugins/ai-assistant/` contains platform-specific entry points around the same workflows:
+Each plugin package contains platform-specific entry points around the same workflows:
 
 - Claude Code: `.claude-plugin/plugin.json`, `commands/*.md`, `skills/*/SKILL.md`
 - Codex: `.codex-plugin/plugin.json`, `skills/*/SKILL.md`
 - OpenCode: `.opencode/skills/*/SKILL.md`, `.opencode/commands/*.md`, `opencode.json`
+
+Current packages:
+
+- `plugins/hello-world/`: starter skills and utility commands.
+- `plugins/workflow-continuity/`: strict workflow continuity commands for `.agent/` state, planning, progress, review, docs, handoff, resume, and ralph-style completion loops.
 
 The canonical skill shape is:
 

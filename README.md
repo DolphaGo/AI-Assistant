@@ -131,11 +131,11 @@ claude
 
 ## 🧩 범용 오픈마켓 패키지
 
-Claude Code, Codex, OpenCode에서 재사용할 수 있는 배포용 패키지는 `plugins/ai-assistant/`에 있습니다.
+Claude Code, Codex, OpenCode에서 재사용할 수 있는 배포용 플러그인 패키지는 `plugins/` 아래에 있습니다.
 
-- Claude Code: `plugins/ai-assistant/.claude-plugin/plugin.json`
-- Codex: `.agents/plugins/marketplace.json` + `plugins/ai-assistant/.codex-plugin/plugin.json`
-- OpenCode: `plugins/ai-assistant/.opencode/skills`, `plugins/ai-assistant/.opencode/commands`, `plugins/ai-assistant/opencode.json`
+- Marketplace: `.agents/plugins/marketplace.json`
+- Hello World: `plugins/hello-world/`
+- Workflow Continuity: `plugins/workflow-continuity/`
 
 자세한 구조는 [Universal Open Market Package](docs/universal-openmarket.md)를 참고하세요.
 
@@ -150,7 +150,8 @@ ai-assistant/
 │       └── marketplace.json  # Codex repo-scoped marketplace
 ├── marketplace.json      # 범용 catalog 메타데이터
 ├── plugins/
-│   └── ai-assistant/    # Claude/Codex/OpenCode 배포용 패키지
+│   ├── hello-world/          # Claude/Codex/OpenCode 배포용 예제 플러그인 패키지
+│   └── workflow-continuity/  # 작업 연속성 workflow 플러그인 패키지
 ├── skills/
 │   └── examples/         # 예제 skills
 ├── templates/            # Skill 템플릿
@@ -170,9 +171,29 @@ ai-assistant/
 
 ```bash
 # Claude 재시작 후
-/ai-assistant:hello-world
-/ai-assistant:api-tester
+/hello-world:status-check
+/hello-world:api-tester
+/wf-plan
+/wf-ralph
 ```
+
+### Workflow Continuity 사용 흐름
+
+`workflow-continuity`는 작업 상태를 repo-local `.agent/`에 남깁니다. `.agent/`는 기본적으로 git에 포함해 다음 에이전트와 체크아웃에서도 같은 상태를 이어받습니다.
+
+```text
+시작: /wf-resume → /wf-plan
+진행: 개발 → /wf-progress → 테스트 → /wf-review
+정리: /wf-docs → /wf-handoff
+자동 반복: /wf-ralph
+```
+
+- `/wf-plan`: 애매함을 질문으로 해소하고 검증 가능한 계획을 만듭니다.
+- `/wf-progress`: 변경, 검증, blocker, 다음 단계를 기록합니다.
+- `/wf-review`: 완료 주장 전에 검증 결과와 품질을 확인합니다.
+- `/wf-docs`: 확정된 지식은 `.agent/DOCS.md`에 기록하고, `CONTEXT.md`/ADR 승격은 사용자 확인 후 진행합니다.
+- `/wf-handoff`: 다음 에이전트가 바로 이어받을 수 있게 현재 상태를 압축합니다.
+- `/wf-ralph`: 목표 완료까지 strict loop를 반복하되 애매함, 계획 이탈, 위험 작업, 검증 실패에서는 멈추고 확인받습니다.
 
 ### 자신의 Skill 만들기
 

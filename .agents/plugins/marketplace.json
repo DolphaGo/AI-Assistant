@@ -5,10 +5,22 @@
   },
   "plugins": [
     {
-      "name": "ai-assistant",
+      "name": "hello-world",
       "source": {
         "source": "local",
-        "path": "./plugins/ai-assistant"
+        "path": "./plugins/hello-world"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    },
+    {
+      "name": "workflow-continuity",
+      "source": {
+        "source": "local",
+        "path": "./plugins/workflow-continuity"
       },
       "policy": {
         "installation": "AVAILABLE",
