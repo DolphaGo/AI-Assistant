@@ -3,6 +3,16 @@
 ## Current Objective
 - 
 
+## Spec Snapshot
+- Behavior:
+- Success criteria:
+- Non-goals:
+
+## Spec Delta
+- Change:
+- Reason:
+- Affected tasks:
+
 ## Scope
 - In scope:
 - Out of scope:
@@ -16,10 +26,18 @@
 - Plan step:
 - Changes:
 - Verification:
+- Risk Profile:
+- Security gate:
 - Review:
 - Blockers:
 - Plan updates:
 - Next step:
+
+## Task Breakdown
+- Task:
+- Files:
+- Verification:
+- Stop condition:
 
 ## Blockers And Debugging
 - Reproduction:

@@ -19,11 +19,12 @@ Use this command before implementation or whenever the current plan no longer fi
 7. Do not enact the plan until the user confirms shared understanding.
 8. Write or update `.agent/PROGRESS.md` using `writing-plans` discipline:
    - objective;
+   - Spec Snapshot: user-visible or workflow behavior that must be true;
    - scope and non-goals;
    - assumptions;
    - success criteria;
    - exact files or areas expected to change;
-   - bite-sized implementation steps;
+   - Task Breakdown: bite-sized implementation steps with verification per task;
    - planned verification;
    - expected verification results;
    - risk notes;
@@ -32,5 +33,6 @@ Use this command before implementation or whenever the current plan no longer fi
 9. For code behavior changes, plan the `test-driven-development` red/green path. For docs, manifests, or packaging-only work, plan a structural check that fails before the edit and passes after it.
 10. When a term is resolved, record it in `.agent/DOCS.md`. Ask before promoting it to `CONTEXT.md`.
 11. When a hard-to-reverse trade-off is resolved, offer an ADR and ask before creating or modifying `docs/adr/`.
+12. If the user changes requirements after planning, append a Spec Delta entry describing what changed, why, and which tasks or success criteria are affected.
 
 Do not implement during `/wf-plan` unless the user explicitly asks to continue after approving the plan.

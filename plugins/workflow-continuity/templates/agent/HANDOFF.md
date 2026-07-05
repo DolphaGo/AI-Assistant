@@ -21,8 +21,21 @@
 - Result:
 - Not run:
 
+## Artifact References
+- Plans:
+- ADRs:
+- Commits:
+- Diffs:
+- PRs:
+- Docs:
+
 ## Review Findings
 - 
+
+## Redaction Check
+- Secrets removed:
+- Private data removed:
+- Duplicated artifact content avoided:
 
 ## Open Questions
 - 

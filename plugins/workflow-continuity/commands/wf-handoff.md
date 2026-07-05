@@ -20,9 +20,11 @@ Use this command before stopping, switching agents, or handing off work.
    - fresh verification evidence and exact commands;
    - checks not run and why;
    - review findings and unresolved quality risks;
+   - artifact references: paths or URLs for plans, ADRs, commits, diffs, PRs, or docs instead of copied content;
    - open blockers or questions;
    - next recommended step;
    - files most likely to matter.
-4. Exclude stale history and unresolved speculation unless it affects the next step.
+4. Exclude stale history, duplicated artifact content, and unresolved speculation unless it affects the next step.
+5. Redact secrets and private data, including API keys, passwords, tokens, cookies, private chat content, and unnecessary PII.
 
 The next agent should be able to read `HANDOFF.md` first and continue immediately.

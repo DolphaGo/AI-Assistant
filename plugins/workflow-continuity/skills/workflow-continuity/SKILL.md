@@ -32,6 +32,8 @@ Create durable docs lazily, only when a term or decision has crystallized.
 - Do not silently expand scope. Record explicit non-goals in the plan when useful.
 - Record evidence, not vibes: commands run, test results, review findings, skipped checks, and reasons.
 - Keep `HANDOFF.md` compact and current. Keep detailed history in `PROGRESS.md`.
+- Do not duplicate content already captured in specs, plans, ADRs, commits, diffs, or PRs. Reference artifact paths or URLs instead.
+- Redact secrets and private data from tracked `.agent/` files, including API keys, passwords, tokens, cookies, private chat content, and unnecessary PII.
 
 ## Grilling Discipline
 
@@ -64,11 +66,35 @@ Fold these disciplines into the workflow without adding more user-facing command
 - `verification-before-completion`: before claiming completion, run fresh verification, read the output, and record the evidence.
 - `requesting-code-review`: after substantial work, risky changes, shared behavior changes, or ralph-mode cycles, run an independent review pass or subagent when available and proportionate.
 
+## Spec-Driven Planning
+
+Use a lightweight Spec Kit-style separation:
+
+- Spec Snapshot: what user-visible or workflow behavior must be true.
+- Technical Plan: how the repo will change to satisfy the spec.
+- Task Breakdown: small implementation tasks with verification per task.
+- Spec Delta: when requirements change, record what changed and why instead of silently rewriting history.
+
+Do not proceed from spec to implementation while success criteria, non-goals, or task boundaries are ambiguous.
+
+## Risk And Security Gate
+
+During review, assign a Risk Profile. Mark the change as security-relevant if it touches:
+
+- authentication, authorization, permissions, or user identity;
+- payments, billing, financial data, or data deletion;
+- secrets, credentials, tokens, cookies, environment variables, or logs;
+- external input, parsing, upload/download, network calls, or shell execution;
+- dependencies, package installation, CI, deployment, or generated artifacts;
+- database migrations, data model changes, or cross-tenant boundaries.
+
+For security-relevant changes, run available local checks such as tests, linters, Semgrep, CodeQL, dependency audit, or targeted grep. If a check is unavailable or skipped, record why.
+
 ## Strict Loop
 
 Run work in cycles:
 
-1. Plan: clarify ambiguity, define scope, success criteria, verification, risks, and stop conditions.
+1. Plan: clarify ambiguity, create a Spec Snapshot, define scope, success criteria, task breakdown, verification, risks, and stop conditions.
 2. Develop: make the smallest scoped change, using TDD for behavior changes.
 3. Test: run the planned verification and record results.
 4. Debug: if verification fails unexpectedly, use systematic debugging before changing code.
