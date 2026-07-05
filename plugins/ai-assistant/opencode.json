@@ -1,0 +1,17 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "command": {
+    "quickcommit": {
+      "template": "Use the quickcommit command workflow from .opencode/commands/quickcommit.md with these arguments: $ARGUMENTS",
+      "description": "Stage changes and create a meaningful commit message"
+    },
+    "search-kr": {
+      "template": "Use the Korean search command workflow from .opencode/commands/search-kr.md with these arguments: $ARGUMENTS",
+      "description": "Search project files and summarize results in Korean"
+    },
+    "cleanup": {
+      "template": "Use the cleanup command workflow from .opencode/commands/cleanup.md with these arguments: $ARGUMENTS",
+      "description": "Clean generated files and dependency artifacts safely"
+    }
+  }
+}

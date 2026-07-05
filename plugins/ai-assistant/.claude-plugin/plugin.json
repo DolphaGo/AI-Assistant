@@ -1,0 +1,14 @@
+{
+  "name": "ai-assistant",
+  "version": "1.0.0",
+  "description": "Korean-first reusable skills and commands for Claude Code workflows.",
+  "author": {
+    "name": "DolphaGo"
+  },
+  "skills": {
+    "examples": ["skills/*/SKILL.md"]
+  },
+  "commands": {
+    "examples": ["commands/*.md"]
+  }
+}

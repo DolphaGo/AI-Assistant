@@ -10,24 +10,25 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 CLAUDE_DIR="$HOME/.claude"
-PLUGIN_DIR="$CLAUDE_DIR/plugins/claude-helper"
+PLUGIN_DIR="$CLAUDE_DIR/plugins/ai-assistant"
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PLUGIN_SOURCE_DIR="$REPO_DIR/plugins/ai-assistant"
 
 echo -e "${BLUE}════════════════════════════════════════${NC}"
-echo -e "${BLUE}   Claude Helper Plugin Installer${NC}"
+echo -e "${BLUE}   AI-Assistant Plugin Installer${NC}"
 echo -e "${BLUE}════════════════════════════════════════${NC}"
 echo ""
 
 # 1. validate.sh 실행
 echo -e "${BLUE}🔍 Step 1/4: Validating files...${NC}"
-if [ -f "$REPO_DIR/validate.sh" ]; then
+if [ -f "$REPO_DIR/validate.sh" ] && [ -f "$REPO_DIR/scripts/validate-universal-package.sh" ]; then
     cd "$REPO_DIR"
-    if ! ./validate.sh; then
+    if ! ./validate.sh || ! ./scripts/validate-universal-package.sh; then
         echo -e "${RED}✗ Validation failed. Please fix the errors and try again.${NC}"
         exit 1
     fi
 else
-    echo -e "${RED}✗ validate.sh not found${NC}"
+    echo -e "${RED}✗ Validation scripts not found${NC}"
     exit 1
 fi
 echo ""
@@ -65,8 +66,8 @@ echo -e "${BLUE}🔗 Step 4/4: Creating symbolic link...${NC}"
 mkdir -p "$CLAUDE_DIR/plugins"
 
 # 심볼릭 링크 생성
-if ln -s "$REPO_DIR" "$PLUGIN_DIR"; then
-    echo -e "${GREEN}✓ Symbolic link created: $PLUGIN_DIR → $REPO_DIR${NC}"
+if ln -s "$PLUGIN_SOURCE_DIR" "$PLUGIN_DIR"; then
+    echo -e "${GREEN}✓ Symbolic link created: $PLUGIN_DIR → $PLUGIN_SOURCE_DIR${NC}"
 else
     echo -e "${RED}✗ Failed to create symbolic link${NC}"
     echo -e "${YELLOW}Try running with appropriate permissions${NC}"
@@ -83,14 +84,14 @@ echo -e "${BLUE}📚 Available skills and commands:${NC}"
 echo ""
 
 # 사용 가능한 skills/commands 출력
-if [ -d "$REPO_DIR/skills/examples" ]; then
+if [ -d "$PLUGIN_SOURCE_DIR/skills" ]; then
     echo -e "${YELLOW}Example Skills:${NC}"
-    find "$REPO_DIR/skills/examples" -name "*.md" -type f -exec basename {} .md \; | sed 's/^/  \//' || true
+    find "$PLUGIN_SOURCE_DIR/skills" -name "SKILL.md" -type f -exec dirname {} \; | xargs -n 1 basename | sed 's/^/  \//' || true
     echo ""
 fi
-if [ -d "$REPO_DIR/commands/examples" ]; then
+if [ -d "$PLUGIN_SOURCE_DIR/commands" ]; then
     echo -e "${YELLOW}Example Commands:${NC}"
-    find "$REPO_DIR/commands/examples" -name "*.md" -type f -exec basename {} .md \; | sed 's/^/  \//' || true
+    find "$PLUGIN_SOURCE_DIR/commands" -name "*.md" -type f -exec basename {} .md \; | sed 's/^/  \//' || true
     echo ""
 fi
 

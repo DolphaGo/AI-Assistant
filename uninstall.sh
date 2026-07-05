@@ -10,21 +10,21 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 CLAUDE_DIR="$HOME/.claude"
-PLUGIN_DIR="$CLAUDE_DIR/plugins/claude-helper"
+PLUGIN_DIR="$CLAUDE_DIR/plugins/ai-assistant"
 
 echo -e "${BLUE}════════════════════════════════════════${NC}"
-echo -e "${BLUE}   Claude Helper Plugin Uninstaller${NC}"
+echo -e "${BLUE}   AI-Assistant Plugin Uninstaller${NC}"
 echo -e "${BLUE}════════════════════════════════════════${NC}"
 echo ""
 
 # 설치 확인
 if [ ! -L "$PLUGIN_DIR" ] && [ ! -d "$PLUGIN_DIR" ]; then
-    echo -e "${YELLOW}⚠ Claude Helper is not installed${NC}"
+    echo -e "${YELLOW}⚠ AI-Assistant is not installed${NC}"
     exit 0
 fi
 
 # 확인 메시지
-echo -e "${YELLOW}This will remove the Claude Helper plugin.${NC}"
+echo -e "${YELLOW}This will remove the AI-Assistant plugin.${NC}"
 echo -e "${YELLOW}Your repository files will NOT be deleted.${NC}"
 echo ""
 read -p "Are you sure you want to uninstall? (y/n): " -n 1 -r

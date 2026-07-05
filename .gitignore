@@ -33,3 +33,4 @@ logs/
 tmp/
 temp/
 *.tmp
+.omx/

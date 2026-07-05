@@ -1,0 +1,18 @@
+{
+  "name": "ai-assistant-marketplace",
+  "version": "1.0.0",
+  "description": "Claude, Codex, and OpenCode compatible assistant plugins.",
+  "author": {
+    "name": "DolphaGo"
+  },
+  "plugins": [
+    {
+      "name": "ai-assistant",
+      "version": "1.0.0",
+      "description": "Korean-first reusable skills and commands for assistant workflows.",
+      "path": "./plugins/ai-assistant",
+      "platforms": ["claude", "codex", "opencode"],
+      "category": "Productivity"
+    }
+  ]
+}

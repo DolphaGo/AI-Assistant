@@ -1,0 +1,26 @@
+{
+  "name": "ai-assistant",
+  "version": "1.0.0",
+  "description": "Korean-first reusable skills and commands for assistant workflows.",
+  "author": {
+    "name": "DolphaGo",
+    "url": "https://github.com/DolphaGo"
+  },
+  "repository": "https://github.com/DolphaGo/AI-Assistant",
+  "license": "MIT",
+  "keywords": ["korean", "skills", "commands", "productivity"],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "AI-Assistant",
+    "shortDescription": "Reusable Korean-first assistant skills.",
+    "longDescription": "A small package of reusable skills and command prompts for code review, API testing, quick commits, cleanup, and search workflows.",
+    "developerName": "DolphaGo",
+    "category": "Productivity",
+    "capabilities": ["Read", "Write"],
+    "websiteURL": "https://dolphago.github.io/AI-Assistant/",
+    "defaultPrompt": [
+      "Use AI-Assistant to review this change in Korean.",
+      "Use AI-Assistant to test this API endpoint."
+    ]
+  }
+}

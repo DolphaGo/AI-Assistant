@@ -1,4 +1,4 @@
-# Claude Helper
+# AI-Assistant
 
 Claude Code를 위한 플러그인 예제 및 학습 가이드입니다.
 
@@ -8,7 +8,7 @@ Claude Code를 위한 플러그인 예제 및 학습 가이드입니다.
 
 ### 온라인 문서
 
-[https://dolphago.github.io/claude-helper/](https://dolphago.github.io/claude-helper/)
+[https://dolphago.github.io/AI-Assistant/](https://dolphago.github.io/AI-Assistant/)
 
 ### 로컬에서 보기
 
@@ -114,8 +114,9 @@ bundle exec jekyll serve
 이 저장소를 플러그인으로 직접 사용하려면:
 
 ```bash
-cd ~/.claude/plugins
-git clone https://github.com/DolphaGo/claude-helper.git
+git clone https://github.com/DolphaGo/AI-Assistant.git
+cd AI-Assistant
+./install.sh
 ```
 
 변경사항 적용:
@@ -128,12 +129,28 @@ git clone https://github.com/DolphaGo/claude-helper.git
 claude
 ```
 
+## 🧩 범용 오픈마켓 패키지
+
+Claude Code, Codex, OpenCode에서 재사용할 수 있는 배포용 패키지는 `plugins/ai-assistant/`에 있습니다.
+
+- Claude Code: `plugins/ai-assistant/.claude-plugin/plugin.json`
+- Codex: `.agents/plugins/marketplace.json` + `plugins/ai-assistant/.codex-plugin/plugin.json`
+- OpenCode: `plugins/ai-assistant/.opencode/skills`, `plugins/ai-assistant/.opencode/commands`, `plugins/ai-assistant/opencode.json`
+
+자세한 구조는 [Universal Open Market Package](docs/universal-openmarket.md)를 참고하세요.
+
 ## 🗂️ 디렉토리 구조
 
 ```
-claude-helper/
+ai-assistant/
 ├── .claude-plugin/
 │   └── plugin.json       # 플러그인 메타데이터
+├── .agents/
+│   └── plugins/
+│       └── marketplace.json  # Codex repo-scoped marketplace
+├── marketplace.json      # 범용 catalog 메타데이터
+├── plugins/
+│   └── ai-assistant/    # Claude/Codex/OpenCode 배포용 패키지
 ├── skills/
 │   └── examples/         # 예제 skills
 ├── templates/            # Skill 템플릿
@@ -153,8 +170,8 @@ claude-helper/
 
 ```bash
 # Claude 재시작 후
-/claude-helper:hello-world
-/claude-helper:api-tester
+/ai-assistant:hello-world
+/ai-assistant:api-tester
 ```
 
 ### 자신의 Skill 만들기

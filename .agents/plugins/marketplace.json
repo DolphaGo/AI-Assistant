@@ -1,0 +1,20 @@
+{
+  "name": "ai-assistant-marketplace",
+  "interface": {
+    "displayName": "AI-Assistant Marketplace"
+  },
+  "plugins": [
+    {
+      "name": "ai-assistant",
+      "source": {
+        "source": "local",
+        "path": "./plugins/ai-assistant"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

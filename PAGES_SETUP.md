@@ -30,7 +30,7 @@ Directory: /docs
 ### 사이트 URL
 
 ```
-https://username.github.io/claude-helper/
+https://username.github.io/AI-Assistant/
 ```
 
 ---
@@ -61,7 +61,7 @@ bundle install
 bundle exec jekyll serve
 
 # 브라우저에서 열기
-open http://localhost:4000/claude-helper/
+open http://localhost:4000/AI-Assistant/
 ```
 
 ---
@@ -75,7 +75,7 @@ open http://localhost:4000/claude-helper/
 **확인:**
 ```yaml
 # docs/_config.yml
-baseurl: /claude-helper
+baseurl: /AI-Assistant
 url: https://username.github.io
 ```
 

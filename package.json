@@ -1,16 +1,16 @@
 {
-  "name": "claude-helper",
+  "name": "ai-assistant",
   "version": "1.0.0",
   "description": "커스텀 Claude skills & commands 모음집",
-  "main": "plugin.json",
+  "main": "plugins/ai-assistant/.claude-plugin/plugin.json",
   "scripts": {
-    "validate": "./validate.sh",
+    "validate": "./validate.sh && ./scripts/validate-universal-package.sh",
     "install-plugin": "./install.sh",
     "uninstall-plugin": "./uninstall.sh"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/DolphaGo/claude-helper.git"
+    "url": "git+https://github.com/DolphaGo/AI-Assistant.git"
   },
   "keywords": [
     "claude",
