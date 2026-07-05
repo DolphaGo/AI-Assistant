@@ -15,10 +15,10 @@
       "category": "Productivity"
     },
     {
-      "name": "workflow-continuity",
+      "name": "workflow",
       "version": "1.0.0",
-      "description": "Strict workflow continuity protocol for handoffs, progress logs, docs, reviews, and ralph-style completion loops.",
-      "path": "./plugins/workflow-continuity",
+      "description": "Strict workflow protocol for handoffs, progress logs, docs, reviews, and ralph-style completion loops.",
+      "path": "./plugins/workflow",
       "platforms": ["claude", "codex", "opencode"],
       "category": "Productivity"
     }

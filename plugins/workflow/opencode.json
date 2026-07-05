@@ -1,0 +1,33 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "command": {
+    "wf-plan": {
+      "template": "Use the workflow planning command from .opencode/commands/wf-plan.md with these arguments: $ARGUMENTS",
+      "description": "Clarify ambiguity and write the next strict workflow plan"
+    },
+    "wf-progress": {
+      "template": "Use the workflow progress command from .opencode/commands/wf-progress.md with these arguments: $ARGUMENTS",
+      "description": "Record progress, verification evidence, blockers, and next steps"
+    },
+    "wf-review": {
+      "template": "Use the workflow review command from .opencode/commands/wf-review.md with these arguments: $ARGUMENTS",
+      "description": "Evaluate implementation quality against the plan"
+    },
+    "wf-docs": {
+      "template": "Use the workflow docs command from .opencode/commands/wf-docs.md with these arguments: $ARGUMENTS",
+      "description": "Promote confirmed decisions and reusable knowledge"
+    },
+    "wf-handoff": {
+      "template": "Use the workflow handoff command from .opencode/commands/wf-handoff.md with these arguments: $ARGUMENTS",
+      "description": "Write a compact handoff for the next agent"
+    },
+    "wf-resume": {
+      "template": "Use the workflow resume command from .opencode/commands/wf-resume.md with these arguments: $ARGUMENTS",
+      "description": "Restore context from .agent state"
+    },
+    "wf-ralph": {
+      "template": "Use the workflow ralph command from .opencode/commands/wf-ralph.md with these arguments: $ARGUMENTS",
+      "description": "Continue strict workflow cycles until complete or escalation is required"
+    }
+  }
+}

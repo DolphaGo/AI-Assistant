@@ -1,38 +1,38 @@
 # Hello World Universal Plugin
 
-Hello World is a starter plugin package for Claude Code, Codex, and OpenCode.
+Hello World는 Claude Code, Codex, OpenCode에서 함께 사용할 수 있는 입문용 플러그인 패키지입니다.
 
 ## Contents
 
-- `skills/`: Open Agent Skills compatible `SKILL.md` folders for Codex and Claude.
-- `commands/`: Claude Code slash command prompts.
-- `.opencode/skills/`: OpenCode project-local skill layout.
-- `.opencode/commands/`: OpenCode project-local command layout.
-- `.claude-plugin/plugin.json`: Claude Code plugin manifest.
-- `.codex-plugin/plugin.json`: Codex plugin manifest.
-- `opencode.json`: OpenCode command config adapter.
+- `skills/`: Codex와 Claude에서 사용하는 Open Agent Skills 호환 `SKILL.md` 폴더입니다.
+- `commands/`: Claude Code slash command prompt입니다.
+- `.opencode/skills/`: OpenCode project-local skill layout입니다.
+- `.opencode/commands/`: OpenCode project-local command layout입니다.
+- `.claude-plugin/plugin.json`: Claude Code plugin manifest입니다.
+- `.codex-plugin/plugin.json`: Codex plugin manifest입니다.
+- `opencode.json`: OpenCode command config adapter입니다.
 
 ## Claude Code
 
-Install this folder as a Claude Code plugin:
+이 폴더를 Claude Code 플러그인으로 설치합니다.
 
 ```bash
 mkdir -p ~/.claude/plugins
 cp -R plugins/hello-world ~/.claude/plugins/hello-world
 ```
 
-Then restart Claude Code or run `/reload-plugins`.
+그다음 Claude Code를 재시작하거나 `/reload-plugins`를 실행합니다.
 
 ## Codex
 
-The repository-level marketplace is defined at `.agents/plugins/marketplace.json`.
-From this repository, restart Codex and install `hello-world` from the `AI-Assistant Marketplace` source.
+저장소 단위 마켓플레이스는 `.agents/plugins/marketplace.json`에 정의되어 있습니다.
+이 저장소에서 Codex를 재시작한 뒤 `AI-Assistant Marketplace` source에서 `hello-world`를 설치합니다.
 
-For a personal marketplace, copy this plugin folder under `~/.codex/plugins/hello-world` and point `~/.agents/plugins/marketplace.json` at that folder.
+개인 마켓플레이스로 쓰려면 이 플러그인 폴더를 `~/.codex/plugins/hello-world` 아래에 복사하고, `~/.agents/plugins/marketplace.json`이 그 폴더를 가리키게 설정합니다.
 
 ## OpenCode
 
-Copy the OpenCode adapter directories into a project or global OpenCode config:
+OpenCode adapter 디렉토리를 프로젝트 또는 global OpenCode config로 복사합니다.
 
 ```bash
 mkdir -p .opencode
@@ -41,4 +41,4 @@ cp -R plugins/hello-world/.opencode/commands .opencode/commands
 cp plugins/hello-world/opencode.json opencode.json
 ```
 
-OpenCode also reads `.agents/skills`, so the canonical `skills/*/SKILL.md` files can be copied to `.agents/skills` when you prefer the shared agent-skill location.
+OpenCode는 `.agents/skills`도 읽습니다. 여러 agent가 공유하는 skill 위치를 선호한다면 표준 `skills/*/SKILL.md` 파일을 `.agents/skills`로 복사해서 사용할 수 있습니다.

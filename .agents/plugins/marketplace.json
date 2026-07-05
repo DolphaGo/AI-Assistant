@@ -17,10 +17,10 @@
       "category": "Productivity"
     },
     {
-      "name": "workflow-continuity",
+      "name": "workflow",
       "source": {
         "source": "local",
-        "path": "./plugins/workflow-continuity"
+        "path": "./plugins/workflow"
       },
       "policy": {
         "installation": "AVAILABLE",
