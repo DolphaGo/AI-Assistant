@@ -181,6 +181,22 @@ if [ -f "plugins/recent-research/skills/recent-research/scripts/research.py" ]; 
     exit 1
   fi
 
+  if ! RECENT_RESEARCH_DIR="$recent_tmp/html" python3 plugins/recent-research/skills/recent-research/scripts/research.py \
+    "validator html" \
+    --mock \
+    --emit html \
+    --save >/dev/null 2>"$recent_tmp/html-stderr"; then
+    cat "$recent_tmp/html-stderr"
+    rm -rf "$recent_tmp"
+    exit 1
+  fi
+
+  if ! find "$recent_tmp/html" -type f -name "validator-html-*.html" | grep -q .; then
+    echo "✗ Recent Research HTML smoke did not save an HTML artifact"
+    rm -rf "$recent_tmp"
+    exit 1
+  fi
+
   rm -rf "$recent_tmp"
 fi
 

@@ -46,7 +46,9 @@ python3 scripts/research.py "Codex vs Cursor" --days 30 --emit brief
 python3 scripts/research.py --compare Codex --compare Cursor --days 30 --emit brief
 ```
 
-Use `--emit markdown` for raw evidence, `--emit json` for structured data, and `--mock` only for validation or demos. Use `--save-dir <dir>` or `--output <file>` when the user asks for a reusable artifact.
+Use `--emit markdown` for raw evidence, `--emit json` for structured data, `--emit html` for a shareable self-contained report, and `--mock` only for validation or demos.
+
+Use `--save` to write to `RECENT_RESEARCH_DIR` or `~/Documents/RecentResearch`. Use `--save-dir <dir>` or `--output <file>` when the user asks for a specific reusable artifact location.
 
 4. If host web search is available and the topic is current, supplement with 2-4 targeted searches:
    - official site or docs for product/company claims
@@ -65,7 +67,8 @@ The script currently supports:
 - Source diagnostics through `doctor`.
 - Structured comparison mode for `A vs B`, `A versus B`, and repeated `--compare` values.
 - Artifact saving through `--save-dir` and `--output`.
-- Brief, Markdown, and JSON output.
+- Default artifact saving through `--save` and `RECENT_RESEARCH_DIR`.
+- Brief, Markdown, JSON, and self-contained HTML output.
 - A mock mode for deterministic validation without network access.
 
 ## Failure Handling
@@ -84,3 +87,4 @@ Use `doctor` results to distinguish local/source availability problems from topi
 - "Compare recent developer chatter around Supabase and Neon."
 - "Compare Codex, Cursor, and Claude Code recent community signals."
 - "Run recent-research doctor and tell me which sources are available."
+- "Make a shareable HTML brief for Supabase vs Neon."

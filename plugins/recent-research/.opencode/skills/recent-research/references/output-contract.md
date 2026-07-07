@@ -52,6 +52,10 @@ Gaps:
 
 The script's `--emit brief` output already follows this scaffold. Treat it as evidence-ready draft material, then add host web-search findings and human-readable synthesis.
 
+## HTML Artifacts
+
+Use `--emit html --save` when the user asks for a shareable report. The HTML is self-contained and wraps the brief scaffold in a readable page. Treat the HTML as an artifact, not as extra evidence.
+
 ## Rules
 
 - Prefer 3-6 high-signal findings over a long list.
@@ -62,3 +66,4 @@ The script's `--emit brief` output already follows this scaffold. Treat it as ev
 - Do not end with a raw URL dump. Use concise links only when the host renders them cleanly.
 - Mention `doctor` output only when diagnosing source availability. Do not include diagnostics in an ordinary topic brief unless a source failure affects confidence.
 - For comparisons, avoid declaring a winner unless both collector evidence and host web search support the claim.
+- When saving artifacts, mention the saved path only when the user asked for an artifact or needs to open the file.

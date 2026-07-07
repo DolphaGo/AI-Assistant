@@ -12,6 +12,7 @@ import argparse
 import datetime as dt
 import html
 import json
+import os
 import re
 import sys
 import time
@@ -545,18 +546,105 @@ def render_comparison_markdown(report: dict[str, Any]) -> str:
 def render_output(report: dict[str, Any], emit: str) -> str:
     if emit == "json":
         return json.dumps(report, indent=2, ensure_ascii=False, sort_keys=True) + "\n"
+    if emit == "html":
+        return render_html(report)
     if emit == "brief":
         return render_brief(report)
     return render_markdown(report)
 
 
-def save_output(content: str, topic: str, emit: str, save_dir: Optional[str], output: Optional[str]) -> Optional[Path]:
+def render_html(report: dict[str, Any]) -> str:
+    title = html.escape(report["topic"])
+    body = html.escape(render_brief(report))
+    generated = html.escape(report.get("generated_at", dt.datetime.now(dt.timezone.utc).isoformat()))
+    return f"""<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Recent Research - {title}</title>
+  <style>
+    :root {{
+      color-scheme: light dark;
+      --bg: #f8fafc;
+      --fg: #0f172a;
+      --muted: #64748b;
+      --panel: #ffffff;
+      --border: #dbe3ef;
+      --accent: #2563eb;
+    }}
+    @media (prefers-color-scheme: dark) {{
+      :root {{
+        --bg: #0b1020;
+        --fg: #e5e7eb;
+        --muted: #94a3b8;
+        --panel: #111827;
+        --border: #243044;
+        --accent: #60a5fa;
+      }}
+    }}
+    body {{
+      margin: 0;
+      background: var(--bg);
+      color: var(--fg);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.55;
+    }}
+    main {{
+      max-width: 920px;
+      margin: 0 auto;
+      padding: 40px 20px;
+    }}
+    .meta {{
+      color: var(--muted);
+      font-size: 13px;
+      margin-bottom: 16px;
+    }}
+    pre {{
+      white-space: pre-wrap;
+      word-break: break-word;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 20px;
+      font: 14px/1.55 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }}
+    .brand {{
+      color: var(--accent);
+      font-weight: 700;
+      letter-spacing: 0;
+    }}
+  </style>
+</head>
+<body>
+  <main>
+    <div class="brand">Recent Research</div>
+    <div class="meta">Generated {generated}</div>
+    <pre>{body}</pre>
+  </main>
+</body>
+</html>
+"""
+
+
+def default_save_dir() -> str:
+    return os.environ.get("RECENT_RESEARCH_DIR") or "~/Documents/RecentResearch"
+
+
+def save_output(
+    content: str,
+    topic: str,
+    emit: str,
+    save_dir: Optional[str],
+    output: Optional[str],
+    save_default: bool,
+) -> Optional[Path]:
     if output:
         path = Path(output).expanduser().resolve()
-    elif save_dir:
-        extension = "json" if emit == "json" else "md"
+    elif save_dir or save_default:
+        extension = "json" if emit == "json" else "html" if emit == "html" else "md"
         filename = f"{slugify(topic)}-{utc_today().isoformat()}.{extension}"
-        path = Path(save_dir).expanduser().resolve() / filename
+        path = Path(save_dir or default_save_dir()).expanduser().resolve() / filename
     else:
         return None
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -610,7 +698,8 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument("--limit", type=int, default=8, help="Maximum signals to return")
     parser.add_argument("--timeout", type=int, default=12, help="HTTP timeout per source")
     parser.add_argument("--source", action="append", choices=DEFAULT_SOURCES, help="Source to include")
-    parser.add_argument("--emit", choices=("markdown", "json", "brief"), default="markdown", help="Output format")
+    parser.add_argument("--emit", choices=("markdown", "json", "brief", "html"), default="markdown", help="Output format")
+    parser.add_argument("--save", action="store_true", help="Save output to RECENT_RESEARCH_DIR or ~/Documents/RecentResearch")
     parser.add_argument("--save-dir", help="Directory to save the rendered output")
     parser.add_argument("--output", help="Exact file path to save the rendered output")
     parser.add_argument("--mock", action="store_true", help="Use deterministic mock evidence")
@@ -639,7 +728,7 @@ def main(argv: Optional[list[str]] = None) -> int:
     else:
         report = collect(args.topic, args.days, sources, args.limit, args.timeout, args.mock)
     content = render_output(report, args.emit)
-    saved_path = save_output(content, report["topic"], args.emit, args.save_dir, args.output)
+    saved_path = save_output(content, report["topic"], args.emit, args.save_dir, args.output, args.save)
     print(content, end="")
     if saved_path:
         print(f"[recent-research] Saved output to {saved_path}", file=sys.stderr)
