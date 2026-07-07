@@ -219,8 +219,8 @@ if [ -f "plugins/recent-research/skills/recent-research/scripts/research.py" ]; 
     --mock \
     --emit json)
 
-  if ! python3 -c 'import json,sys; data=json.load(sys.stdin); assert "deduped_count" in data' <<<"$recent_json_output"; then
-    echo "✗ Recent Research JSON output missing deduped_count"
+  if ! python3 -c 'import json,sys; data=json.load(sys.stdin); assert "deduped_count" in data; assert data["ranking"] == "source-balanced"' <<<"$recent_json_output"; then
+    echo "✗ Recent Research JSON output missing dedupe or ranking metadata"
     rm -rf "$recent_tmp"
     exit 1
   fi
@@ -244,9 +244,15 @@ signals = [
 deduped, dropped = module.dedupe_signals(signals)
 assert len(deduped) == 2
 assert dropped == 1
+ranked = module.rank_signals([
+    module.Signal("github", "Repo 1", "https://example.com/repo1", "2026-01-01", score=100),
+    module.Signal("github", "Repo 2", "https://example.com/repo2", "2026-01-01", score=90),
+    module.Signal("news", "News 1", "https://example.com/news1", "2026-01-01"),
+], 2)
+assert [signal.source for signal in ranked] == ["github", "news"]
 PY
   then
-    echo "✗ Recent Research dedupe smoke failed"
+    echo "✗ Recent Research ranking/dedupe smoke failed"
     rm -rf "$recent_tmp"
     exit 1
   fi

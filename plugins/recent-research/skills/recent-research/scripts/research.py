@@ -170,6 +170,34 @@ def dedupe_signals(signals: list[Signal]) -> tuple[list[Signal], int]:
     return deduped, len(signals) - len(deduped)
 
 
+def signal_rank_key(signal: Signal) -> tuple[int, str, str]:
+    return (signal.score + signal.comments * 2, signal.date, signal.title)
+
+
+def rank_signals(signals: list[Signal], limit: int) -> list[Signal]:
+    sorted_signals = sorted(signals, key=signal_rank_key, reverse=True)
+    selected: list[Signal] = []
+    selected_ids: set[int] = set()
+    seen_sources: set[str] = set()
+
+    for signal in sorted_signals:
+        if signal.source in seen_sources:
+            continue
+        selected.append(signal)
+        selected_ids.add(id(signal))
+        seen_sources.add(signal.source)
+        if len(selected) >= limit:
+            return selected
+
+    for signal in sorted_signals:
+        if id(signal) in selected_ids:
+            continue
+        selected.append(signal)
+        if len(selected) >= limit:
+            return selected
+    return selected
+
+
 def normalize_comparison_entities(topic: Optional[str], compare_values: Optional[list[str]]) -> list[str]:
     entities: list[str] = []
     for value in compare_values or []:
@@ -551,11 +579,7 @@ def collect(
             statuses.append(status)
 
     deduped_signals, deduped_count = dedupe_signals(signals)
-    ranked = sorted(
-        deduped_signals,
-        key=lambda item: (item.score + item.comments * 2, item.date, item.title),
-        reverse=True,
-    )
+    ranked = rank_signals(deduped_signals, limit)
     return {
         "topic": topic,
         "window_days": days,
@@ -563,9 +587,10 @@ def collect(
         "generated_at": dt.datetime.now(dt.timezone.utc).replace(microsecond=0).isoformat(),
         "plan": query_plan,
         "sources": [asdict(status) for status in statuses],
+        "ranking": "source-balanced",
         "deduped_count": deduped_count,
-        "signals": [asdict(signal) for signal in ranked[:limit]],
-        "next_checks": build_next_checks(statuses, ranked[:limit]),
+        "signals": [asdict(signal) for signal in ranked],
+        "next_checks": build_next_checks(statuses, ranked),
     }
 
 
@@ -616,6 +641,7 @@ def render_markdown(report: dict[str, Any]) -> str:
         "",
         f"Window: {report['since']} to {utc_today().isoformat()} ({report['window_days']} days)",
         f"Generated: {report['generated_at']}",
+        f"Ranking: {report.get('ranking', 'engagement')}",
         "",
         "Sources checked:",
     ]
@@ -663,6 +689,7 @@ def render_brief(report: dict[str, Any]) -> str:
         "",
         f"Window: {report['since']} to {today} ({report['window_days']} days)",
         f"Sources checked: {source_labels(report)}",
+        f"Ranking: {report.get('ranking', 'engagement')}",
     ]
     if report.get("deduped_count"):
         lines.append(f"Deduped: removed {report['deduped_count']} duplicate signals")

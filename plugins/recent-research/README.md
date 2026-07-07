@@ -136,6 +136,7 @@ python3 scripts/research.py "OpenTelemetry" --plan /tmp/recent-research-plan.jso
 이 Skill의 결과는 최종 결론이 아니라 근거 스캐폴드입니다.
 
 - `Sources checked`에서 어떤 소스가 성공했는지 먼저 봅니다.
+- `Ranking`은 기본적으로 `source-balanced`이며, 소스별 대표 시그널을 먼저 확보한 뒤 나머지를 채웁니다.
 - `Deduped`가 표시되면 URL 또는 제목 기준으로 중복 후보가 제거된 것입니다.
 - `Strongest signals`는 최근 공개 반응의 후보 근거입니다.
 - `My read`는 근거에서 나온 해석이므로 사실과 구분해서 봅니다.

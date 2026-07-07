@@ -93,6 +93,7 @@ The script currently supports:
 - Source diagnostics through `doctor`.
 - Query planning through `--show-plan`, `--plan`, `--github-query`, `--hn-query`, `--reddit-query`, and `--news-query`.
 - URL and title deduplication before ranking signals.
+- Source-balanced ranking so one high-volume source does not hide every other source.
 - Source-aware `next_checks` for follow-up verification before synthesis.
 - Structured comparison mode for `A vs B`, `A versus B`, and repeated `--compare` values.
 - Artifact saving through `--save-dir` and `--output`.
