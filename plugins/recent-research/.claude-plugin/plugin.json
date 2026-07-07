@@ -1,7 +1,7 @@
 {
   "name": "recent-research",
   "version": "1.0.0",
-  "description": "Product-style skill for recent public signal research using deterministic collectors and host web search.",
+  "description": "Product-style skill for recent public signal research, comparisons, source diagnostics, and shareable reports.",
   "author": {
     "name": "DolphaGo"
   },

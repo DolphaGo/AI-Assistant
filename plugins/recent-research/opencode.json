@@ -3,7 +3,7 @@
   "command": {
     "recent-research": {
       "template": "Use the recent-research command from .opencode/commands/recent-research.md with these arguments: $ARGUMENTS",
-      "description": "Collect and synthesize recent public signals for a topic"
+      "description": "Collect recent public signals, comparisons, diagnostics, and shareable reports"
     }
   }
 }

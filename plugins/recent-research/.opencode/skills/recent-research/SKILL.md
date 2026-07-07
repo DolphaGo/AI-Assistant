@@ -1,6 +1,6 @@
 ---
 name: recent-research
-description: Research recent public signals for a topic using a bundled deterministic evidence collector plus the host's web search when available. Use when the user asks for recent market, product, competitor, hiring, community, GitHub, Hacker News, or Reddit signals; wants a concise current brief; or needs source-grounded evidence before a meeting, build decision, product comparison, or trend check.
+description: This skill should be used when the user asks for recent market, product, competitor, hiring, community, GitHub, Hacker News, Reddit, or news signals; wants a concise current brief; asks to compare recent public activity between products; requests source diagnostics; or needs a saved Markdown, JSON, or HTML research artifact before a meeting, build decision, product comparison, or trend check.
 ---
 
 # Recent Research

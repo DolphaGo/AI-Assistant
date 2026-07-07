@@ -28,6 +28,7 @@ nav_order: 12
 
 - `plugins/hello-world/`: 입문용 skills와 utility commands를 모은 예제 플러그인입니다.
 - `plugins/workflow/`: `.agent/` 상태, plan, progress, review, docs, handoff, resume, ralph-style completion loop를 다루는 workflow 플러그인입니다.
+- `plugins/recent-research/`: 최근 공개 시그널을 수집해 근거 기반 브리프와 비교 리포트를 만드는 research 플러그인입니다.
 
 표준 skill 구조는 다음과 같습니다.
 
