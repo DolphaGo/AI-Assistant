@@ -47,6 +47,7 @@ class SourceStatus:
     detail: str
     count: int = 0
     latency_ms: int = 0
+    query: str = ""
 
 
 def utc_today() -> dt.date:
@@ -126,14 +127,87 @@ def normalize_comparison_entities(topic: Optional[str], compare_values: Optional
     return deduped
 
 
-def github_signals(topic: str, days: int, limit: int, timeout: int) -> tuple[list[Signal], SourceStatus]:
+def load_plan(raw_plan: Optional[str]) -> dict[str, Any]:
+    if not raw_plan:
+        return {}
+    candidate = Path(raw_plan).expanduser()
+    if candidate.exists():
+        raw_text = candidate.read_text(encoding="utf-8")
+    else:
+        raw_text = raw_plan
+    try:
+        payload = json.loads(raw_text)
+    except json.JSONDecodeError as exc:
+        raise SystemExit(f"--plan must be a JSON string or path to a JSON file: {exc}") from exc
+    if not isinstance(payload, dict):
+        raise SystemExit("--plan must decode to a JSON object")
+    return payload
+
+
+def source_query_overrides(args: argparse.Namespace) -> dict[str, str]:
+    candidates = {
+        "github": args.github_query,
+        "hackernews": args.hackernews_query,
+        "reddit": args.reddit_query,
+    }
+    return {source: value.strip() for source, value in candidates.items() if value and value.strip()}
+
+
+def plan_queries(topic: str, plan: dict[str, Any], overrides: dict[str, str]) -> dict[str, str]:
+    queries = {source: topic for source in DEFAULT_SOURCES}
+    plan_queries_value = plan.get("queries", {})
+    if plan_queries_value:
+        if not isinstance(plan_queries_value, dict):
+            raise SystemExit("--plan field 'queries' must be an object")
+        for source, value in plan_queries_value.items():
+            if source in queries and isinstance(value, str) and value.strip():
+                queries[source] = value.strip()
+    queries.update(overrides)
+    return queries
+
+
+def entity_plan(entity: str, plan: dict[str, Any]) -> dict[str, Any]:
+    entities = plan.get("entities", {})
+    if not isinstance(entities, dict):
+        return {}
+    value = entities.get(entity) or entities.get(entity.casefold())
+    if value is None:
+        for key, candidate in entities.items():
+            if isinstance(key, str) and key.casefold() == entity.casefold():
+                value = candidate
+                break
+    if isinstance(value, dict):
+        return value
+    return {}
+
+
+def build_plan(topic: str, plan: dict[str, Any], overrides: dict[str, str]) -> dict[str, Any]:
+    return {
+        "topic": topic,
+        "queries": plan_queries(topic, plan, overrides),
+        "notes": plan.get("notes", []) if isinstance(plan.get("notes", []), list) else [],
+    }
+
+
+def build_comparison_plan(entities: list[str], plan: dict[str, Any], overrides: dict[str, str]) -> dict[str, Any]:
+    return {
+        "topic": " vs ".join(entities),
+        "comparison": True,
+        "entities": [
+            build_plan(entity, entity_plan(entity, plan), overrides)
+            for entity in entities
+        ],
+    }
+
+
+def github_signals(query: str, days: int, limit: int, timeout: int) -> tuple[list[Signal], SourceStatus]:
     since = since_date(days).isoformat()
     signals: list[Signal] = []
 
     repo_data = fetch_json(
         "https://api.github.com/search/repositories",
         {
-            "q": f"{topic} pushed:>={since}",
+            "q": f"{query} pushed:>={since}",
             "sort": "updated",
             "order": "desc",
             "per_page": max(1, min(limit, 10)),
@@ -157,7 +231,7 @@ def github_signals(topic: str, days: int, limit: int, timeout: int) -> tuple[lis
     issue_data = fetch_json(
         "https://api.github.com/search/issues",
         {
-            "q": f"{topic} updated:>={since}",
+            "q": f"{query} updated:>={since}",
             "sort": "updated",
             "order": "desc",
             "per_page": max(1, min(issue_budget, 10)),
@@ -177,15 +251,15 @@ def github_signals(topic: str, days: int, limit: int, timeout: int) -> tuple[lis
             )
         )
 
-    return signals[:limit], SourceStatus("github", "ok", "public GitHub search", len(signals[:limit]))
+    return signals[:limit], SourceStatus("github", "ok", "public GitHub search", len(signals[:limit]), query=query)
 
 
-def hackernews_signals(topic: str, days: int, limit: int, timeout: int) -> tuple[list[Signal], SourceStatus]:
+def hackernews_signals(query: str, days: int, limit: int, timeout: int) -> tuple[list[Signal], SourceStatus]:
     min_ts = int(time.mktime(since_date(days).timetuple()))
     data = fetch_json(
         "https://hn.algolia.com/api/v1/search_by_date",
         {
-            "query": topic,
+            "query": query,
             "tags": "story,comment",
             "numericFilters": f"created_at_i>{min_ts}",
             "hitsPerPage": max(1, min(limit, 20)),
@@ -209,14 +283,14 @@ def hackernews_signals(topic: str, days: int, limit: int, timeout: int) -> tuple
                 snippet=clean_text(item.get("comment_text") or item.get("story_text")),
             )
         )
-    return signals, SourceStatus("hackernews", "ok", "public Algolia API", len(signals))
+    return signals, SourceStatus("hackernews", "ok", "public Algolia API", len(signals), query=query)
 
 
-def reddit_signals(topic: str, days: int, limit: int, timeout: int) -> tuple[list[Signal], SourceStatus]:
+def reddit_signals(query: str, days: int, limit: int, timeout: int) -> tuple[list[Signal], SourceStatus]:
     data = fetch_json(
         "https://www.reddit.com/search.json",
         {
-            "q": topic,
+            "q": query,
             "sort": "new",
             "t": "month" if days <= 31 else "year",
             "limit": max(1, min(limit, 25)),
@@ -245,7 +319,7 @@ def reddit_signals(topic: str, days: int, limit: int, timeout: int) -> tuple[lis
         )
         if len(signals) >= limit:
             break
-    return signals, SourceStatus("reddit", "ok", "public Reddit search JSON", len(signals))
+    return signals, SourceStatus("reddit", "ok", "public Reddit search JSON", len(signals), query=query)
 
 
 def mock_signals(topic: str, days: int, limit: int) -> tuple[list[Signal], list[SourceStatus]]:
@@ -285,15 +359,25 @@ def mock_signals(topic: str, days: int, limit: int) -> tuple[list[Signal], list[
     for sample in samples:
         counts[sample.source] += 1
     statuses = [
-        SourceStatus(source, "ok", "mock", counts[source])
+        SourceStatus(source, "ok", "mock", counts[source], query=topic)
         for source in DEFAULT_SOURCES
     ]
     return samples, statuses
 
 
-def collect(topic: str, days: int, sources: list[str], limit: int, timeout: int, mock: bool) -> dict[str, Any]:
+def collect(
+    topic: str,
+    days: int,
+    sources: list[str],
+    limit: int,
+    timeout: int,
+    mock: bool,
+    query_plan: dict[str, Any],
+) -> dict[str, Any]:
     if mock:
         signals, statuses = mock_signals(topic, days, limit)
+        for status in statuses:
+            status.query = query_plan["queries"].get(status.source, topic)
     else:
         signals = []
         statuses = []
@@ -304,12 +388,13 @@ def collect(topic: str, days: int, sources: list[str], limit: int, timeout: int,
         }
         for source in sources:
             collector = collectors[source]
+            query = query_plan["queries"].get(source, topic)
             started = time.monotonic()
             try:
-                source_signals, status = collector(topic, days, limit, timeout)
+                source_signals, status = collector(query, days, limit, timeout)
             except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError, json.JSONDecodeError, OSError) as exc:
                 latency_ms = int((time.monotonic() - started) * 1000)
-                statuses.append(SourceStatus(source, "failed", describe_error(exc), 0, latency_ms))
+                statuses.append(SourceStatus(source, "failed", describe_error(exc), 0, latency_ms, query))
                 continue
             status.latency_ms = int((time.monotonic() - started) * 1000)
             signals.extend(source_signals)
@@ -325,6 +410,7 @@ def collect(topic: str, days: int, sources: list[str], limit: int, timeout: int,
         "window_days": days,
         "since": since_date(days).isoformat(),
         "generated_at": dt.datetime.now(dt.timezone.utc).replace(microsecond=0).isoformat(),
+        "plan": query_plan,
         "sources": [asdict(status) for status in statuses],
         "signals": [asdict(signal) for signal in ranked[:limit]],
     }
@@ -337,13 +423,14 @@ def collect_comparison(
     limit: int,
     timeout: int,
     mock: bool,
+    comparison_plan: dict[str, Any],
 ) -> dict[str, Any]:
     reports = [
         {
-            "entity": entity,
-            "report": collect(entity, days, sources, limit, timeout, mock),
+            "entity": entity_plan_value["topic"],
+            "report": collect(entity_plan_value["topic"], days, sources, limit, timeout, mock, entity_plan_value),
         }
-        for entity in entities
+        for entity_plan_value in comparison_plan["entities"]
     ]
     return {
         "topic": " vs ".join(entities),
@@ -351,6 +438,7 @@ def collect_comparison(
         "window_days": days,
         "since": since_date(days).isoformat(),
         "generated_at": dt.datetime.now(dt.timezone.utc).replace(microsecond=0).isoformat(),
+        "plan": comparison_plan,
         "entities": reports,
     }
 
@@ -379,8 +467,9 @@ def render_markdown(report: dict[str, Any]) -> str:
     ]
     for source in report["sources"]:
         latency = f", {source['latency_ms']}ms" if source.get("latency_ms") else ""
+        query = f", query: {source['query']}" if source.get("query") else ""
         lines.append(
-            f"- {source['source']}: {source['status']} ({source['count']} items{latency}) - {source['detail']}"
+            f"- {source['source']}: {source['status']} ({source['count']} items{latency}{query}) - {source['detail']}"
         )
 
     lines.extend(["", "Signals:"])
@@ -694,6 +783,11 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Collect recent public signals for a topic.")
     parser.add_argument("topic", nargs="?", help="Research topic, or 'doctor' to probe sources")
     parser.add_argument("--compare", action="append", help="Entity to compare. Repeat or comma-separate.")
+    parser.add_argument("--plan", help="JSON query plan string or path to a JSON plan file")
+    parser.add_argument("--show-plan", action="store_true", help="Print the resolved query plan and exit")
+    parser.add_argument("--github-query", help="Override the GitHub search query")
+    parser.add_argument("--hackernews-query", "--hn-query", dest="hackernews_query", help="Override the Hacker News search query")
+    parser.add_argument("--reddit-query", help="Override the Reddit search query")
     parser.add_argument("--days", type=int, default=30, help="Lookback window in days")
     parser.add_argument("--limit", type=int, default=8, help="Maximum signals to return")
     parser.add_argument("--timeout", type=int, default=12, help="HTTP timeout per source")
@@ -709,6 +803,8 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
 def main(argv: Optional[list[str]] = None) -> int:
     args = parse_args(argv or sys.argv[1:])
     sources = args.source or list(DEFAULT_SOURCES)
+    plan_doc = load_plan(args.plan)
+    overrides = source_query_overrides(args)
     if args.topic == "doctor":
         return run_doctor(sources, args.timeout, args.emit)
     if not args.topic:
@@ -724,9 +820,17 @@ def main(argv: Optional[list[str]] = None) -> int:
     if comparison_entities:
         if len(comparison_entities) < 2:
             raise SystemExit("comparison mode requires at least two entities")
-        report = collect_comparison(comparison_entities, args.days, sources, args.limit, args.timeout, args.mock)
+        resolved_plan = build_comparison_plan(comparison_entities, plan_doc, overrides)
+        if args.show_plan:
+            print(json.dumps(resolved_plan, indent=2, ensure_ascii=False, sort_keys=True))
+            return 0
+        report = collect_comparison(comparison_entities, args.days, sources, args.limit, args.timeout, args.mock, resolved_plan)
     else:
-        report = collect(args.topic, args.days, sources, args.limit, args.timeout, args.mock)
+        resolved_plan = build_plan(args.topic, plan_doc, overrides)
+        if args.show_plan:
+            print(json.dumps(resolved_plan, indent=2, ensure_ascii=False, sort_keys=True))
+            return 0
+        report = collect(args.topic, args.days, sources, args.limit, args.timeout, args.mock, resolved_plan)
     content = render_output(report, args.emit)
     saved_path = save_output(content, report["topic"], args.emit, args.save_dir, args.output, args.save)
     print(content, end="")

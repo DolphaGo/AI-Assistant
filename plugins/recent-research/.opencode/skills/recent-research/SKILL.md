@@ -50,12 +50,35 @@ Use `--emit markdown` for raw evidence, `--emit json` for structured data, `--em
 
 Use `--save` to write to `RECENT_RESEARCH_DIR` or `~/Documents/RecentResearch`. Use `--save-dir <dir>` or `--output <file>` when the user asks for a specific reusable artifact location.
 
-4. If host web search is available and the topic is current, supplement with 2-4 targeted searches:
+4. Use query planning when the default topic is too broad, ambiguous, or source-specific:
+
+```bash
+python3 scripts/research.py "OpenTelemetry" --show-plan
+python3 scripts/research.py "OpenTelemetry" --github-query "open-telemetry opentelemetry" --hn-query "OpenTelemetry"
+python3 scripts/research.py "OpenTelemetry" --plan /tmp/recent-research-plan.json
+```
+
+Plan JSON shape:
+
+```json
+{
+  "queries": {
+    "github": "open-telemetry opentelemetry",
+    "hackernews": "OpenTelemetry",
+    "reddit": "OpenTelemetry"
+  },
+  "notes": ["Use exact project spelling for GitHub."]
+}
+```
+
+For comparisons, the plan may include per-entity query overrides under `entities`.
+
+5. If host web search is available and the topic is current, supplement with 2-4 targeted searches:
    - official site or docs for product/company claims
    - recent news for launches, incidents, or pricing
    - specific competitor names when the user asks for comparison
-5. Read `references/output-contract.md` before synthesizing the final brief.
-6. Mention saved artifact paths only when the user asked for a file or when the artifact is materially useful.
+6. Read `references/output-contract.md` before synthesizing the final brief.
+7. Mention saved artifact paths only when the user asked for a file or when the artifact is materially useful.
 
 ## Collector Capabilities
 
@@ -65,6 +88,7 @@ The script currently supports:
 - Hacker News story and comment signals through the public Algolia API.
 - Reddit public search when Reddit allows unauthenticated JSON access.
 - Source diagnostics through `doctor`.
+- Query planning through `--show-plan`, `--plan`, `--github-query`, `--hn-query`, and `--reddit-query`.
 - Structured comparison mode for `A vs B`, `A versus B`, and repeated `--compare` values.
 - Artifact saving through `--save-dir` and `--output`.
 - Default artifact saving through `--save` and `RECENT_RESEARCH_DIR`.
@@ -88,3 +112,4 @@ Use `doctor` results to distinguish local/source availability problems from topi
 - "Compare Codex, Cursor, and Claude Code recent community signals."
 - "Run recent-research doctor and tell me which sources are available."
 - "Make a shareable HTML brief for Supabase vs Neon."
+- "Use a better GitHub query for OpenTelemetry and show me the plan first."

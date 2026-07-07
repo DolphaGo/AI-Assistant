@@ -197,6 +197,17 @@ if [ -f "plugins/recent-research/skills/recent-research/scripts/research.py" ]; 
     exit 1
   fi
 
+  recent_plan_output=$(python3 plugins/recent-research/skills/recent-research/scripts/research.py \
+    "validator plan" \
+    --show-plan \
+    --github-query "validator github")
+
+  if ! grep -q '"github": "validator github"' <<<"$recent_plan_output"; then
+    echo "✗ Recent Research query plan smoke output missing GitHub override"
+    rm -rf "$recent_tmp"
+    exit 1
+  fi
+
   rm -rf "$recent_tmp"
 fi
 

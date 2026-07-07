@@ -56,6 +56,10 @@ The script's `--emit brief` output already follows this scaffold. Treat it as ev
 
 Use `--emit html --save` when the user asks for a shareable report. The HTML is self-contained and wraps the brief scaffold in a readable page. Treat the HTML as an artifact, not as extra evidence.
 
+## Query Plans
+
+Use `--show-plan` before collection when a topic has ambiguous names, renamed projects, handles, or source-specific spelling. Use `--plan` with JSON when the model or user has already resolved better source queries. The final brief may mention the query plan only when it materially affects confidence or explains a gap.
+
 ## Rules
 
 - Prefer 3-6 high-signal findings over a long list.
@@ -67,3 +71,4 @@ Use `--emit html --save` when the user asks for a shareable report. The HTML is 
 - Mention `doctor` output only when diagnosing source availability. Do not include diagnostics in an ordinary topic brief unless a source failure affects confidence.
 - For comparisons, avoid declaring a winner unless both collector evidence and host web search support the claim.
 - When saving artifacts, mention the saved path only when the user asked for an artifact or needs to open the file.
+- Do not present planned queries as evidence. Only collected signals and host web-search results are evidence.
