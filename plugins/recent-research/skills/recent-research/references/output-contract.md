@@ -20,6 +20,9 @@ My read:
 
 Gaps:
 - <missing source, thin evidence, or failed source>
+
+Next checks:
+- <verification step before stronger synthesis>
 ```
 
 ## Comparison Shape
@@ -48,6 +51,9 @@ My read:
 
 Gaps:
 - <entity>: <missing source, thin evidence, or failed source>
+
+Next checks:
+- <comparison verification step before final ranking>
 ```
 
 The script's `--emit brief` output already follows this scaffold. Treat it as evidence-ready draft material, then add host web-search findings and human-readable synthesis.
@@ -68,6 +74,7 @@ Use `--show-plan` before collection when a topic has ambiguous names, renamed pr
 - Report source failures and thin evidence plainly.
 - Do not invent engagement counts, dates, URLs, handles, or repository names.
 - Treat `news` items as public headline signals; verify important claims with primary sources before presenting them as settled facts.
+- Use `next_checks` as the minimum follow-up checklist before making stronger recommendations, rankings, or trend claims.
 - Do not end with a raw URL dump. Use concise links only when the host renders them cleanly.
 - Mention `doctor` output only when diagnosing source availability. Do not include diagnostics in an ordinary topic brief unless a source failure affects confidence.
 - For comparisons, avoid declaring a winner unless both collector evidence and host web search support the claim.

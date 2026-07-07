@@ -22,6 +22,7 @@ Keep the final answer short and source-grounded:
 - Give 3-6 strongest signals, each tied to a source label.
 - Separate evidence from inference with phrases like "This suggests" or "My read".
 - Include gaps when sources are thin, unavailable, or single-source.
+- Use `Next checks` from the collector to decide what to verify before making a stronger claim.
 - Avoid raw URL dumps in prose. Use readable source labels and retain URLs in the evidence artifact or concise links when useful.
 
 ## Workflow
@@ -91,6 +92,7 @@ The script currently supports:
 - Recent news through public Google News RSS.
 - Source diagnostics through `doctor`.
 - Query planning through `--show-plan`, `--plan`, `--github-query`, `--hn-query`, `--reddit-query`, and `--news-query`.
+- Source-aware `next_checks` for follow-up verification before synthesis.
 - Structured comparison mode for `A vs B`, `A versus B`, and repeated `--compare` values.
 - Artifact saving through `--save-dir` and `--output`.
 - Default artifact saving through `--save` and `RECENT_RESEARCH_DIR`.

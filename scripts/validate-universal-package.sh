@@ -163,6 +163,12 @@ if [ -f "plugins/recent-research/skills/recent-research/scripts/research.py" ]; 
     exit 1
   fi
 
+  if ! grep -q "Next checks:" <<<"$recent_output"; then
+    echo "✗ Recent Research smoke output missing next checks"
+    rm -rf "$recent_tmp"
+    exit 1
+  fi
+
   if ! find "$recent_tmp" -type f -name "validator-smoke-*.md" | grep -q .; then
     echo "✗ Recent Research smoke did not save a markdown artifact"
     rm -rf "$recent_tmp"

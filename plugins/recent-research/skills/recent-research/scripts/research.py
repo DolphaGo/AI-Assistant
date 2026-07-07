@@ -428,6 +428,43 @@ def mock_signals(topic: str, days: int, limit: int) -> tuple[list[Signal], list[
     return samples, statuses
 
 
+def build_next_checks(statuses: list[SourceStatus], signals: list[Signal]) -> list[str]:
+    failed = [status.source for status in statuses if status.status != "ok"]
+    empty = [status.source for status in statuses if status.status == "ok" and status.count == 0]
+    signal_sources = {signal.source for signal in signals}
+    checks: list[str] = []
+
+    if signals:
+        checks.append("Open the top signal URLs and confirm title, date, and claim before citing.")
+    else:
+        checks.append("No collector signals were found; broaden the query or use host web search before answering.")
+    if failed:
+        checks.append(f"Rerun failed sources or replace them with host web search: {', '.join(failed)}.")
+    if empty:
+        checks.append(f"Consider source-specific query overrides for empty sources: {', '.join(empty)}.")
+    if signal_sources & {"news", "reddit", "hackernews"}:
+        checks.append("Verify news and community claims against primary sources such as docs, release notes, vendor posts, or repository threads.")
+    if "github" in signal_sources:
+        checks.append("For GitHub signals, inspect activity context and maintainer ownership before treating stars or comments as adoption.")
+    return checks[:5]
+
+
+def build_comparison_next_checks(reports: list[dict[str, Any]]) -> list[str]:
+    checks = [
+        "Compare entities using the same source set, lookback window, and query intent before making a winner claim.",
+    ]
+    failed_entities = [
+        f"{entry['entity']}:{source['source']}"
+        for entry in reports
+        for source in entry["report"]["sources"]
+        if source["status"] != "ok"
+    ]
+    if failed_entities:
+        checks.append(f"Resolve failed source coverage before final ranking: {', '.join(failed_entities)}.")
+    checks.append("Confirm the strongest signal for each entity with a primary source or directly linked discussion.")
+    return checks
+
+
 def collect(
     topic: str,
     days: int,
@@ -477,6 +514,7 @@ def collect(
         "plan": query_plan,
         "sources": [asdict(status) for status in statuses],
         "signals": [asdict(signal) for signal in ranked[:limit]],
+        "next_checks": build_next_checks(statuses, ranked[:limit]),
     }
 
 
@@ -504,6 +542,7 @@ def collect_comparison(
         "generated_at": dt.datetime.now(dt.timezone.utc).replace(microsecond=0).isoformat(),
         "plan": comparison_plan,
         "entities": reports,
+        "next_checks": build_comparison_next_checks(reports),
     }
 
 
@@ -555,6 +594,9 @@ def render_markdown(report: dict[str, Any]) -> str:
             lines.append(f"   - snippet: {signal['snippet']}")
         if signal["url"]:
             lines.append(f"   - url: {signal['url']}")
+    lines.extend(["", "Next checks:"])
+    for check in report.get("next_checks", []):
+        lines.append(f"- {check}")
     return "\n".join(lines) + "\n"
 
 
@@ -604,6 +646,9 @@ def render_brief(report: dict[str, Any]) -> str:
         lines.append(f"- {gap}")
     if not gaps and not empty_sources:
         lines.append("- No collector source failures. Still verify important claims with host web search or primary sources.")
+    lines.extend(["", "Next checks:"])
+    for check in report.get("next_checks", []):
+        lines.append(f"- {check}")
     return "\n".join(lines) + "\n"
 
 
@@ -680,6 +725,9 @@ def render_comparison_brief(report: dict[str, Any]) -> str:
             lines.append(f"- {entity['entity']}: {gap}")
     if not any_gap:
         lines.append("- No collector source failures. Still verify important claims with host web search or primary sources.")
+    lines.extend(["", "Next checks:"])
+    for check in report.get("next_checks", []):
+        lines.append(f"- {check}")
     return "\n".join(lines) + "\n"
 
 
@@ -693,6 +741,9 @@ def render_comparison_markdown(report: dict[str, Any]) -> str:
     for entity in report["entities"]:
         lines.extend(["", f"## {entity['entity']}", ""])
         lines.append(render_markdown(entity["report"]).rstrip())
+    lines.extend(["", "## Next checks", ""])
+    for check in report.get("next_checks", []):
+        lines.append(f"- {check}")
     return "\n".join(lines) + "\n"
 
 
