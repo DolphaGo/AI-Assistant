@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import argparse
 import datetime as dt
+import email.utils
 import html
 import json
 import os
@@ -19,12 +20,13 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
+import xml.etree.ElementTree as ET
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any, Optional, Union
 
 USER_AGENT = "AI-Assistant recent-research/1.0"
-DEFAULT_SOURCES = ("github", "hackernews", "reddit")
+DEFAULT_SOURCES = ("github", "hackernews", "reddit", "news")
 COMPARISON_SPLIT_RE = re.compile(r"\s+(?:vs\.?|versus)\s+", re.IGNORECASE)
 
 
@@ -61,7 +63,8 @@ def since_date(days: int) -> dt.date:
 def clean_text(value: Any, max_len: int = 260) -> str:
     if value is None:
         return ""
-    text = html.unescape(str(value))
+    text = re.sub(r"<[^>]+>", " ", str(value))
+    text = html.unescape(text)
     text = " ".join(text.replace("\n", " ").split())
     if len(text) <= max_len:
         return text
@@ -80,6 +83,20 @@ def fetch_json(url: str, params: dict[str, Union[str, int]], timeout: int) -> An
     with urllib.request.urlopen(request, timeout=timeout) as response:
         payload = response.read()
     return json.loads(payload.decode("utf-8"))
+
+
+def fetch_text(url: str, params: dict[str, Union[str, int]], timeout: int) -> str:
+    query = urllib.parse.urlencode(params)
+    request = urllib.request.Request(
+        f"{url}?{query}",
+        headers={
+            "Accept": "application/rss+xml, application/xml, text/xml",
+            "User-Agent": USER_AGENT,
+        },
+    )
+    with urllib.request.urlopen(request, timeout=timeout) as response:
+        payload = response.read()
+    return payload.decode("utf-8", errors="replace")
 
 
 def slugify(value: str) -> str:
@@ -149,6 +166,7 @@ def source_query_overrides(args: argparse.Namespace) -> dict[str, str]:
         "github": args.github_query,
         "hackernews": args.hackernews_query,
         "reddit": args.reddit_query,
+        "news": args.news_query,
     }
     return {source: value.strip() for source, value in candidates.items() if value and value.strip()}
 
@@ -322,6 +340,43 @@ def reddit_signals(query: str, days: int, limit: int, timeout: int) -> tuple[lis
     return signals, SourceStatus("reddit", "ok", "public Reddit search JSON", len(signals), query=query)
 
 
+def news_signals(query: str, days: int, limit: int, timeout: int) -> tuple[list[Signal], SourceStatus]:
+    text = fetch_text(
+        "https://news.google.com/rss/search",
+        {
+            "q": f"{query} when:{days}d",
+            "hl": "en-US",
+            "gl": "US",
+            "ceid": "US:en",
+        },
+        timeout,
+    )
+    root = ET.fromstring(text)
+    signals: list[Signal] = []
+    for item in root.findall(".//item")[:limit]:
+        title = clean_text(item.findtext("title"))
+        link = item.findtext("link") or ""
+        published = item.findtext("pubDate") or ""
+        parsed_date = ""
+        if published:
+            try:
+                parsed_date = email.utils.parsedate_to_datetime(published).date().isoformat()
+            except (TypeError, ValueError, AttributeError):
+                parsed_date = ""
+        source = item.findtext("source") or ""
+        signals.append(
+            Signal(
+                source="news",
+                title=title,
+                url=link,
+                date=parsed_date,
+                author=clean_text(source, 80),
+                snippet=clean_text(item.findtext("description")),
+            )
+        )
+    return signals, SourceStatus("news", "ok", "Google News RSS", len(signals), query=query)
+
+
 def mock_signals(topic: str, days: int, limit: int) -> tuple[list[Signal], list[SourceStatus]]:
     today = utc_today().isoformat()
     samples = [
@@ -354,6 +409,14 @@ def mock_signals(topic: str, days: int, limit: int) -> tuple[list[Signal], list[
             comments=23,
             snippet="Mock community signal for validation.",
         ),
+        Signal(
+            source="news",
+            title=f"{topic} recent news item",
+            url="https://news.example.com/mock",
+            date=today,
+            author="Example News",
+            snippet="Mock news signal for validation.",
+        ),
     ][:limit]
     counts = {source: 0 for source in DEFAULT_SOURCES}
     for sample in samples:
@@ -385,6 +448,7 @@ def collect(
             "github": github_signals,
             "hackernews": hackernews_signals,
             "reddit": reddit_signals,
+            "news": news_signals,
         }
         for source in sources:
             collector = collectors[source]
@@ -392,7 +456,7 @@ def collect(
             started = time.monotonic()
             try:
                 source_signals, status = collector(query, days, limit, timeout)
-            except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError, json.JSONDecodeError, OSError) as exc:
+            except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError, json.JSONDecodeError, ET.ParseError, OSError) as exc:
                 latency_ms = int((time.monotonic() - started) * 1000)
                 statuses.append(SourceStatus(source, "failed", describe_error(exc), 0, latency_ms, query))
                 continue
@@ -746,19 +810,23 @@ def run_doctor(sources: list[str], timeout: int, emit: str) -> int:
         "github": ("https://api.github.com/search/repositories", {"q": "opentelemetry", "per_page": 1}),
         "hackernews": ("https://hn.algolia.com/api/v1/search_by_date", {"query": "python", "hitsPerPage": 1}),
         "reddit": ("https://www.reddit.com/search.json", {"q": "python", "sort": "new", "t": "month", "limit": 1}),
+        "news": ("https://news.google.com/rss/search", {"q": "python when:30d", "hl": "en-US", "gl": "US", "ceid": "US:en"}),
     }
     statuses: list[SourceStatus] = []
     for source in sources:
         started = time.monotonic()
         url, params = probes[source]
         try:
-            data = fetch_json(url, params, timeout)
+            if source == "news":
+                root = ET.fromstring(fetch_text(url, params, timeout))
+                count = len(root.findall(".//item"))
+            else:
+                data = fetch_json(url, params, timeout)
+                count = len(data.get("items", data.get("hits", [])))
             if source == "reddit":
                 count = len(data.get("data", {}).get("children", []))
-            else:
-                count = len(data.get("items", data.get("hits", [])))
             status = SourceStatus(source, "ok", "probe succeeded", count)
-        except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError, json.JSONDecodeError, OSError) as exc:
+        except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError, json.JSONDecodeError, ET.ParseError, OSError) as exc:
             status = SourceStatus(source, "failed", describe_error(exc), 0)
         status.latency_ms = int((time.monotonic() - started) * 1000)
         statuses.append(status)
@@ -788,6 +856,7 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument("--github-query", help="Override the GitHub search query")
     parser.add_argument("--hackernews-query", "--hn-query", dest="hackernews_query", help="Override the Hacker News search query")
     parser.add_argument("--reddit-query", help="Override the Reddit search query")
+    parser.add_argument("--news-query", help="Override the news RSS search query")
     parser.add_argument("--days", type=int, default=30, help="Lookback window in days")
     parser.add_argument("--limit", type=int, default=8, help="Maximum signals to return")
     parser.add_argument("--timeout", type=int, default=12, help="HTTP timeout per source")

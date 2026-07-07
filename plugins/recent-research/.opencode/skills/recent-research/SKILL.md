@@ -54,7 +54,7 @@ Use `--save` to write to `RECENT_RESEARCH_DIR` or `~/Documents/RecentResearch`. 
 
 ```bash
 python3 scripts/research.py "OpenTelemetry" --show-plan
-python3 scripts/research.py "OpenTelemetry" --github-query "open-telemetry opentelemetry" --hn-query "OpenTelemetry"
+python3 scripts/research.py "OpenTelemetry" --github-query "open-telemetry opentelemetry" --hn-query "OpenTelemetry" --news-query "OpenTelemetry"
 python3 scripts/research.py "OpenTelemetry" --plan /tmp/recent-research-plan.json
 ```
 
@@ -65,7 +65,8 @@ Plan JSON shape:
   "queries": {
     "github": "open-telemetry opentelemetry",
     "hackernews": "OpenTelemetry",
-    "reddit": "OpenTelemetry"
+    "reddit": "OpenTelemetry",
+    "news": "OpenTelemetry"
   },
   "notes": ["Use exact project spelling for GitHub."]
 }
@@ -87,8 +88,9 @@ The script currently supports:
 - GitHub repository and issue signals through public GitHub search.
 - Hacker News story and comment signals through the public Algolia API.
 - Reddit public search when Reddit allows unauthenticated JSON access.
+- Recent news through public Google News RSS.
 - Source diagnostics through `doctor`.
-- Query planning through `--show-plan`, `--plan`, `--github-query`, `--hn-query`, and `--reddit-query`.
+- Query planning through `--show-plan`, `--plan`, `--github-query`, `--hn-query`, `--reddit-query`, and `--news-query`.
 - Structured comparison mode for `A vs B`, `A versus B`, and repeated `--compare` values.
 - Artifact saving through `--save-dir` and `--output`.
 - Default artifact saving through `--save` and `RECENT_RESEARCH_DIR`.
@@ -113,3 +115,4 @@ Use `doctor` results to distinguish local/source availability problems from topi
 - "Run recent-research doctor and tell me which sources are available."
 - "Make a shareable HTML brief for Supabase vs Neon."
 - "Use a better GitHub query for OpenTelemetry and show me the plan first."
+- "Check recent news and developer signals for OpenTelemetry."

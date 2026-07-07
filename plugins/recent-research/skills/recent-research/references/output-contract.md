@@ -67,6 +67,7 @@ Use `--show-plan` before collection when a topic has ambiguous names, renamed pr
 - Distinguish evidence from interpretation.
 - Report source failures and thin evidence plainly.
 - Do not invent engagement counts, dates, URLs, handles, or repository names.
+- Treat `news` items as public headline signals; verify important claims with primary sources before presenting them as settled facts.
 - Do not end with a raw URL dump. Use concise links only when the host renders them cleanly.
 - Mention `doctor` output only when diagnosing source availability. Do not include diagnostics in an ordinary topic brief unless a source failure affects confidence.
 - For comparisons, avoid declaring a winner unless both collector evidence and host web search support the claim.
