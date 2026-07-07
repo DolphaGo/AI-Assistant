@@ -1,0 +1,9 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "command": {
+    "recent-research": {
+      "template": "Use the recent-research command from .opencode/commands/recent-research.md with these arguments: $ARGUMENTS",
+      "description": "Collect and synthesize recent public signals for a topic"
+    }
+  }
+}

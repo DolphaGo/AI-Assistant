@@ -1,0 +1,8 @@
+interface:
+  display_name: "Recent Research"
+  short_description: "Research recent public signals."
+  default_prompt: "Use $recent-research to brief me on recent public signals for this topic."
+  brand_color: "#2563EB"
+
+policy:
+  allow_implicit_invocation: true

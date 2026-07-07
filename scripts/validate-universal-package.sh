@@ -124,7 +124,52 @@ for plugin_dir in plugins/*; do
       echo "✗ OpenCode skill adapter drift: $opencode_skill_file differs from $skill_file"
       exit 1
     fi
+
+    while IFS= read -r resource_file; do
+      relative_resource=${resource_file#"$skill_dir/"}
+      opencode_resource="$plugin_dir/.opencode/skills/$skill_name/$relative_resource"
+
+      if [ ! -f "$opencode_resource" ]; then
+        echo "✗ Missing OpenCode skill resource adapter: $opencode_resource"
+        exit 1
+      fi
+
+      if ! cmp -s "$resource_file" "$opencode_resource"; then
+        echo "✗ OpenCode skill resource adapter drift: $opencode_resource differs from $resource_file"
+        exit 1
+      fi
+    done < <(find "$skill_dir" -type f \
+      ! -name "SKILL.md" \
+      ! -path "$skill_dir/agents/*" \
+      | sort)
   done
 done
+
+if [ -f "plugins/recent-research/skills/recent-research/scripts/research.py" ]; then
+  recent_tmp=$(mktemp -d)
+  if ! recent_output=$(python3 plugins/recent-research/skills/recent-research/scripts/research.py \
+    "validator smoke" \
+    --mock \
+    --emit brief \
+    --save-dir "$recent_tmp" 2>"$recent_tmp/stderr"); then
+    cat "$recent_tmp/stderr"
+    rm -rf "$recent_tmp"
+    exit 1
+  fi
+
+  if ! grep -q "Recent Research: validator smoke" <<<"$recent_output"; then
+    echo "✗ Recent Research smoke output missing brief title"
+    rm -rf "$recent_tmp"
+    exit 1
+  fi
+
+  if ! find "$recent_tmp" -type f -name "validator-smoke-*.md" | grep -q .; then
+    echo "✗ Recent Research smoke did not save a markdown artifact"
+    rm -rf "$recent_tmp"
+    exit 1
+  fi
+
+  rm -rf "$recent_tmp"
+fi
 
 echo "✓ Universal package validation passed"

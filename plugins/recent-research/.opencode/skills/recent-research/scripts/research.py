@@ -1,0 +1,493 @@
+#!/usr/bin/env python3
+"""Collect recent public signals for the recent-research skill.
+
+The script intentionally uses only Python's standard library and public,
+low-friction endpoints. It is a deterministic evidence collector, not a final
+research writer.
+"""
+
+from __future__ import annotations
+
+import argparse
+import datetime as dt
+import html
+import json
+import sys
+import time
+import urllib.error
+import urllib.parse
+import urllib.request
+from dataclasses import asdict, dataclass
+from pathlib import Path
+from typing import Any, Optional, Union
+
+USER_AGENT = "AI-Assistant recent-research/1.0"
+DEFAULT_SOURCES = ("github", "hackernews", "reddit")
+
+
+@dataclass
+class Signal:
+    source: str
+    title: str
+    url: str
+    date: str
+    author: str = ""
+    score: int = 0
+    comments: int = 0
+    snippet: str = ""
+
+
+@dataclass
+class SourceStatus:
+    source: str
+    status: str
+    detail: str
+    count: int = 0
+    latency_ms: int = 0
+
+
+def utc_today() -> dt.date:
+    return dt.datetime.now(dt.timezone.utc).date()
+
+
+def since_date(days: int) -> dt.date:
+    return utc_today() - dt.timedelta(days=days)
+
+
+def clean_text(value: Any, max_len: int = 260) -> str:
+    if value is None:
+        return ""
+    text = html.unescape(str(value))
+    text = " ".join(text.replace("\n", " ").split())
+    if len(text) <= max_len:
+        return text
+    return text[: max_len - 1].rstrip() + "..."
+
+
+def fetch_json(url: str, params: dict[str, Union[str, int]], timeout: int) -> Any:
+    query = urllib.parse.urlencode(params)
+    request = urllib.request.Request(
+        f"{url}?{query}",
+        headers={
+            "Accept": "application/json",
+            "User-Agent": USER_AGENT,
+        },
+    )
+    with urllib.request.urlopen(request, timeout=timeout) as response:
+        payload = response.read()
+    return json.loads(payload.decode("utf-8"))
+
+
+def slugify(value: str) -> str:
+    slug = []
+    previous_dash = False
+    for char in value.lower():
+        if char.isalnum():
+            slug.append(char)
+            previous_dash = False
+        elif not previous_dash:
+            slug.append("-")
+            previous_dash = True
+    normalized = "".join(slug).strip("-")
+    return normalized or "recent-research"
+
+
+def describe_error(exc: BaseException) -> str:
+    if isinstance(exc, urllib.error.HTTPError):
+        return f"HTTP {exc.code}: {clean_text(exc.reason, 120)}"
+    if isinstance(exc, urllib.error.URLError):
+        return f"URL error: {clean_text(exc.reason, 160)}"
+    return clean_text(exc, 180)
+
+
+def github_signals(topic: str, days: int, limit: int, timeout: int) -> tuple[list[Signal], SourceStatus]:
+    since = since_date(days).isoformat()
+    signals: list[Signal] = []
+
+    repo_data = fetch_json(
+        "https://api.github.com/search/repositories",
+        {
+            "q": f"{topic} pushed:>={since}",
+            "sort": "updated",
+            "order": "desc",
+            "per_page": max(1, min(limit, 10)),
+        },
+        timeout,
+    )
+    for item in repo_data.get("items", [])[:limit]:
+        signals.append(
+            Signal(
+                source="github",
+                title=clean_text(item.get("full_name") or item.get("name")),
+                url=item.get("html_url") or "",
+                date=(item.get("pushed_at") or item.get("updated_at") or "")[:10],
+                author=(item.get("owner") or {}).get("login", ""),
+                score=int(item.get("stargazers_count") or 0),
+                snippet=clean_text(item.get("description")),
+            )
+        )
+
+    issue_budget = max(1, limit - len(signals))
+    issue_data = fetch_json(
+        "https://api.github.com/search/issues",
+        {
+            "q": f"{topic} updated:>={since}",
+            "sort": "updated",
+            "order": "desc",
+            "per_page": max(1, min(issue_budget, 10)),
+        },
+        timeout,
+    )
+    for item in issue_data.get("items", [])[:issue_budget]:
+        signals.append(
+            Signal(
+                source="github",
+                title=clean_text(item.get("title")),
+                url=item.get("html_url") or "",
+                date=(item.get("updated_at") or item.get("created_at") or "")[:10],
+                author=(item.get("user") or {}).get("login", ""),
+                comments=int(item.get("comments") or 0),
+                snippet=clean_text(item.get("body")),
+            )
+        )
+
+    return signals[:limit], SourceStatus("github", "ok", "public GitHub search", len(signals[:limit]))
+
+
+def hackernews_signals(topic: str, days: int, limit: int, timeout: int) -> tuple[list[Signal], SourceStatus]:
+    min_ts = int(time.mktime(since_date(days).timetuple()))
+    data = fetch_json(
+        "https://hn.algolia.com/api/v1/search_by_date",
+        {
+            "query": topic,
+            "tags": "story,comment",
+            "numericFilters": f"created_at_i>{min_ts}",
+            "hitsPerPage": max(1, min(limit, 20)),
+        },
+        timeout,
+    )
+    signals: list[Signal] = []
+    for item in data.get("hits", [])[:limit]:
+        object_id = item.get("objectID") or ""
+        title = item.get("title") or item.get("story_title") or item.get("comment_text") or "Hacker News item"
+        item_url = item.get("url") or item.get("story_url") or f"https://news.ycombinator.com/item?id={object_id}"
+        signals.append(
+            Signal(
+                source="hackernews",
+                title=clean_text(title),
+                url=item_url,
+                date=(item.get("created_at") or "")[:10],
+                author=item.get("author") or "",
+                score=int(item.get("points") or 0),
+                comments=int(item.get("num_comments") or 0),
+                snippet=clean_text(item.get("comment_text") or item.get("story_text")),
+            )
+        )
+    return signals, SourceStatus("hackernews", "ok", "public Algolia API", len(signals))
+
+
+def reddit_signals(topic: str, days: int, limit: int, timeout: int) -> tuple[list[Signal], SourceStatus]:
+    data = fetch_json(
+        "https://www.reddit.com/search.json",
+        {
+            "q": topic,
+            "sort": "new",
+            "t": "month" if days <= 31 else "year",
+            "limit": max(1, min(limit, 25)),
+        },
+        timeout,
+    )
+    cutoff = dt.datetime.combine(since_date(days), dt.time.min, tzinfo=dt.timezone.utc).timestamp()
+    signals: list[Signal] = []
+    for child in data.get("data", {}).get("children", []):
+        item = child.get("data", {})
+        created = float(item.get("created_utc") or 0)
+        if created and created < cutoff:
+            continue
+        permalink = item.get("permalink") or ""
+        signals.append(
+            Signal(
+                source="reddit",
+                title=clean_text(item.get("title")),
+                url=f"https://www.reddit.com{permalink}" if permalink else item.get("url") or "",
+                date=dt.datetime.fromtimestamp(created, dt.timezone.utc).date().isoformat() if created else "",
+                author=item.get("author") or "",
+                score=int(item.get("score") or 0),
+                comments=int(item.get("num_comments") or 0),
+                snippet=clean_text(item.get("selftext")),
+            )
+        )
+        if len(signals) >= limit:
+            break
+    return signals, SourceStatus("reddit", "ok", "public Reddit search JSON", len(signals))
+
+
+def mock_signals(topic: str, days: int, limit: int) -> tuple[list[Signal], list[SourceStatus]]:
+    today = utc_today().isoformat()
+    samples = [
+        Signal(
+            source="github",
+            title=f"{topic} example/repo",
+            url="https://github.com/example/repo",
+            date=today,
+            author="example",
+            score=128,
+            snippet="Mock repository activity for validation.",
+        ),
+        Signal(
+            source="hackernews",
+            title=f"{topic} discussion on Hacker News",
+            url="https://news.ycombinator.com/item?id=1",
+            date=today,
+            author="hn-user",
+            score=42,
+            comments=17,
+            snippet="Mock discussion signal for validation.",
+        ),
+        Signal(
+            source="reddit",
+            title=f"{topic} community thread",
+            url="https://www.reddit.com/r/example/comments/1/mock/",
+            date=today,
+            author="reddit-user",
+            score=91,
+            comments=23,
+            snippet="Mock community signal for validation.",
+        ),
+    ][:limit]
+    statuses = [
+        SourceStatus("github", "ok", "mock", 1),
+        SourceStatus("hackernews", "ok", "mock", 1),
+        SourceStatus("reddit", "ok", "mock", 1),
+    ]
+    return samples, statuses
+
+
+def collect(topic: str, days: int, sources: list[str], limit: int, timeout: int, mock: bool) -> dict[str, Any]:
+    if mock:
+        signals, statuses = mock_signals(topic, days, limit)
+    else:
+        signals = []
+        statuses = []
+        collectors = {
+            "github": github_signals,
+            "hackernews": hackernews_signals,
+            "reddit": reddit_signals,
+        }
+        for source in sources:
+            collector = collectors[source]
+            started = time.monotonic()
+            try:
+                source_signals, status = collector(topic, days, limit, timeout)
+            except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError, json.JSONDecodeError, OSError) as exc:
+                latency_ms = int((time.monotonic() - started) * 1000)
+                statuses.append(SourceStatus(source, "failed", describe_error(exc), 0, latency_ms))
+                continue
+            status.latency_ms = int((time.monotonic() - started) * 1000)
+            signals.extend(source_signals)
+            statuses.append(status)
+
+    ranked = sorted(
+        signals,
+        key=lambda item: (item.score + item.comments * 2, item.date, item.title),
+        reverse=True,
+    )
+    return {
+        "topic": topic,
+        "window_days": days,
+        "since": since_date(days).isoformat(),
+        "generated_at": dt.datetime.now(dt.timezone.utc).replace(microsecond=0).isoformat(),
+        "sources": [asdict(status) for status in statuses],
+        "signals": [asdict(signal) for signal in ranked[:limit]],
+    }
+
+
+def source_labels(report: dict[str, Any]) -> str:
+    labels = []
+    for source in report["sources"]:
+        label = f"{source['source']}:{source['status']}"
+        if source.get("count"):
+            label += f"/{source['count']}"
+        labels.append(label)
+    return ", ".join(labels) if labels else "none"
+
+
+def render_markdown(report: dict[str, Any]) -> str:
+    lines = [
+        f"Recent Research Evidence: {report['topic']}",
+        "",
+        f"Window: {report['since']} to {utc_today().isoformat()} ({report['window_days']} days)",
+        f"Generated: {report['generated_at']}",
+        "",
+        "Sources checked:",
+    ]
+    for source in report["sources"]:
+        latency = f", {source['latency_ms']}ms" if source.get("latency_ms") else ""
+        lines.append(
+            f"- {source['source']}: {source['status']} ({source['count']} items{latency}) - {source['detail']}"
+        )
+
+    lines.extend(["", "Signals:"])
+    if not report["signals"]:
+        lines.append("- No signals found from the collector sources.")
+    for index, signal in enumerate(report["signals"], start=1):
+        metrics = []
+        if signal["score"]:
+            metrics.append(f"score {signal['score']}")
+        if signal["comments"]:
+            metrics.append(f"{signal['comments']} comments")
+        metric_text = f" [{', '.join(metrics)}]" if metrics else ""
+        lines.append(
+            f"{index}. [{signal['source']}] {signal['title']} ({signal['date'] or 'unknown date'}){metric_text}"
+        )
+        if signal["author"]:
+            lines.append(f"   - author: {signal['author']}")
+        if signal["snippet"]:
+            lines.append(f"   - snippet: {signal['snippet']}")
+        if signal["url"]:
+            lines.append(f"   - url: {signal['url']}")
+    return "\n".join(lines) + "\n"
+
+
+def render_brief(report: dict[str, Any]) -> str:
+    today = utc_today().isoformat()
+    lines = [
+        f"Recent Research: {report['topic']}",
+        "",
+        f"Window: {report['since']} to {today} ({report['window_days']} days)",
+        f"Sources checked: {source_labels(report)}",
+        "",
+        "Strongest signals:",
+    ]
+    if not report["signals"]:
+        lines.append("1. No collector signals found in this run.")
+    for index, signal in enumerate(report["signals"][:6], start=1):
+        metrics = []
+        if signal["score"]:
+            metrics.append(f"score {signal['score']}")
+        if signal["comments"]:
+            metrics.append(f"{signal['comments']} comments")
+        metric_text = f" ({', '.join(metrics)})" if metrics else ""
+        lines.append(
+            f"{index}. {signal['title']} - source: {signal['source']}, date: {signal['date'] or 'unknown'}{metric_text}"
+        )
+        if signal["snippet"]:
+            lines.append(f"   Evidence: {signal['snippet']}")
+        if signal["url"]:
+            lines.append(f"   URL: {signal['url']}")
+
+    gaps = [
+        f"{source['source']} failed: {source['detail']}"
+        for source in report["sources"]
+        if source["status"] != "ok"
+    ]
+    empty_sources = [
+        f"{source['source']} returned no items"
+        for source in report["sources"]
+        if source["status"] == "ok" and source["count"] == 0
+    ]
+    lines.extend(["", "My read:", "- Treat this as an evidence scaffold. Add host web-search findings before making current-news or market claims."])
+    lines.extend(["", "Gaps:"])
+    for gap in gaps + empty_sources:
+        lines.append(f"- {gap}")
+    if not gaps and not empty_sources:
+        lines.append("- No collector source failures. Still verify important claims with host web search or primary sources.")
+    return "\n".join(lines) + "\n"
+
+
+def render_output(report: dict[str, Any], emit: str) -> str:
+    if emit == "json":
+        return json.dumps(report, indent=2, ensure_ascii=False, sort_keys=True) + "\n"
+    if emit == "brief":
+        return render_brief(report)
+    return render_markdown(report)
+
+
+def save_output(content: str, topic: str, emit: str, save_dir: Optional[str], output: Optional[str]) -> Optional[Path]:
+    if output:
+        path = Path(output).expanduser().resolve()
+    elif save_dir:
+        extension = "json" if emit == "json" else "md"
+        filename = f"{slugify(topic)}-{utc_today().isoformat()}.{extension}"
+        path = Path(save_dir).expanduser().resolve() / filename
+    else:
+        return None
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(content, encoding="utf-8")
+    return path
+
+
+def run_doctor(sources: list[str], timeout: int, emit: str) -> int:
+    probes = {
+        "github": ("https://api.github.com/search/repositories", {"q": "opentelemetry", "per_page": 1}),
+        "hackernews": ("https://hn.algolia.com/api/v1/search_by_date", {"query": "python", "hitsPerPage": 1}),
+        "reddit": ("https://www.reddit.com/search.json", {"q": "python", "sort": "new", "t": "month", "limit": 1}),
+    }
+    statuses: list[SourceStatus] = []
+    for source in sources:
+        started = time.monotonic()
+        url, params = probes[source]
+        try:
+            data = fetch_json(url, params, timeout)
+            if source == "reddit":
+                count = len(data.get("data", {}).get("children", []))
+            else:
+                count = len(data.get("items", data.get("hits", [])))
+            status = SourceStatus(source, "ok", "probe succeeded", count)
+        except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError, json.JSONDecodeError, OSError) as exc:
+            status = SourceStatus(source, "failed", describe_error(exc), 0)
+        status.latency_ms = int((time.monotonic() - started) * 1000)
+        statuses.append(status)
+
+    payload = {
+        "generated_at": dt.datetime.now(dt.timezone.utc).replace(microsecond=0).isoformat(),
+        "sources": [asdict(status) for status in statuses],
+    }
+    if emit == "json":
+        print(json.dumps(payload, indent=2, ensure_ascii=False, sort_keys=True))
+    else:
+        print("Recent Research Doctor")
+        print("")
+        for status in statuses:
+            print(
+                f"- {status.source}: {status.status} ({status.count} items, {status.latency_ms}ms) - {status.detail}"
+            )
+    return 0
+
+
+def parse_args(argv: list[str]) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Collect recent public signals for a topic.")
+    parser.add_argument("topic", nargs="?", help="Research topic, or 'doctor' to probe sources")
+    parser.add_argument("--days", type=int, default=30, help="Lookback window in days")
+    parser.add_argument("--limit", type=int, default=8, help="Maximum signals to return")
+    parser.add_argument("--timeout", type=int, default=12, help="HTTP timeout per source")
+    parser.add_argument("--source", action="append", choices=DEFAULT_SOURCES, help="Source to include")
+    parser.add_argument("--emit", choices=("markdown", "json", "brief"), default="markdown", help="Output format")
+    parser.add_argument("--save-dir", help="Directory to save the rendered output")
+    parser.add_argument("--output", help="Exact file path to save the rendered output")
+    parser.add_argument("--mock", action="store_true", help="Use deterministic mock evidence")
+    return parser.parse_args(argv)
+
+
+def main(argv: Optional[list[str]] = None) -> int:
+    args = parse_args(argv or sys.argv[1:])
+    sources = args.source or list(DEFAULT_SOURCES)
+    if args.topic == "doctor":
+        return run_doctor(sources, args.timeout, args.emit)
+    if not args.topic:
+        raise SystemExit("topic is required unless running 'doctor'")
+    if args.days < 1:
+        raise SystemExit("--days must be at least 1")
+    if args.limit < 1:
+        raise SystemExit("--limit must be at least 1")
+    report = collect(args.topic, args.days, sources, args.limit, args.timeout, args.mock)
+    content = render_output(report, args.emit)
+    saved_path = save_output(content, args.topic, args.emit, args.save_dir, args.output)
+    print(content, end="")
+    if saved_path:
+        print(f"[recent-research] Saved output to {saved_path}", file=sys.stderr)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

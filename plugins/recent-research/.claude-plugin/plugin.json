@@ -1,0 +1,14 @@
+{
+  "name": "recent-research",
+  "version": "1.0.0",
+  "description": "Product-style skill for recent public signal research using deterministic collectors and host web search.",
+  "author": {
+    "name": "DolphaGo"
+  },
+  "skills": {
+    "recent-research": ["skills/*/SKILL.md"]
+  },
+  "commands": {
+    "recent-research": ["commands/*.md"]
+  }
+}

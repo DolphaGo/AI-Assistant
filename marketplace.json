@@ -21,6 +21,14 @@
       "path": "./plugins/workflow",
       "platforms": ["claude", "codex", "opencode"],
       "category": "Productivity"
+    },
+    {
+      "name": "recent-research",
+      "version": "1.0.0",
+      "description": "Product-style skill for recent public signal research using deterministic collectors and host web search.",
+      "path": "./plugins/recent-research",
+      "platforms": ["claude", "codex", "opencode"],
+      "category": "Research"
     }
   ]
 }

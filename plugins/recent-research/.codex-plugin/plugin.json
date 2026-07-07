@@ -1,0 +1,27 @@
+{
+  "name": "recent-research",
+  "version": "1.0.0",
+  "description": "Product-style skill for recent public signal research using deterministic collectors and host web search.",
+  "author": {
+    "name": "DolphaGo",
+    "url": "https://github.com/DolphaGo"
+  },
+  "repository": "https://github.com/DolphaGo/AI-Assistant",
+  "license": "MIT",
+  "keywords": ["research", "signals", "github", "hacker-news", "reddit", "market"],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Recent Research",
+    "shortDescription": "Research recent public signals for a topic.",
+    "longDescription": "A product-style research skill that gathers recent public evidence from low-friction sources such as GitHub, Hacker News, and Reddit, then guides the agent to synthesize a concise source-grounded brief with gaps and interpretation separated.",
+    "developerName": "DolphaGo",
+    "category": "Research",
+    "capabilities": ["Read", "Write"],
+    "websiteURL": "https://dolphago.github.io/AI-Assistant/",
+    "defaultPrompt": [
+      "Use Recent Research to brief me on recent public signals for this topic.",
+      "Use Recent Research to compare recent developer chatter around two products."
+    ],
+    "brandColor": "#2563EB"
+  }
+}
