@@ -121,6 +121,55 @@ def describe_error(exc: BaseException) -> str:
     return clean_text(exc, 180)
 
 
+def normalize_url_key(url: str) -> str:
+    if not url:
+        return ""
+    try:
+        parsed = urllib.parse.urlsplit(url)
+    except ValueError:
+        return url.strip().casefold()
+    query_pairs = [
+        (key, value)
+        for key, value in urllib.parse.parse_qsl(parsed.query, keep_blank_values=True)
+        if not key.casefold().startswith("utm_") and key.casefold() not in {"fbclid", "gclid", "ref", "ref_src"}
+    ]
+    query = urllib.parse.urlencode(query_pairs)
+    normalized = urllib.parse.urlunsplit(
+        (
+            parsed.scheme.casefold(),
+            parsed.netloc.casefold(),
+            parsed.path.rstrip("/"),
+            query,
+            "",
+        )
+    )
+    return normalized.casefold()
+
+
+def normalize_title_key(title: str) -> str:
+    words = re.findall(r"[a-z0-9]+", title.casefold())
+    return " ".join(words)
+
+
+def dedupe_signals(signals: list[Signal]) -> tuple[list[Signal], int]:
+    deduped: list[Signal] = []
+    seen_urls: set[str] = set()
+    seen_titles: set[str] = set()
+    for signal in signals:
+        url_key = normalize_url_key(signal.url)
+        title_key = normalize_title_key(signal.title)
+        if url_key and url_key in seen_urls:
+            continue
+        if title_key and title_key in seen_titles:
+            continue
+        if url_key:
+            seen_urls.add(url_key)
+        if title_key:
+            seen_titles.add(title_key)
+        deduped.append(signal)
+    return deduped, len(signals) - len(deduped)
+
+
 def normalize_comparison_entities(topic: Optional[str], compare_values: Optional[list[str]]) -> list[str]:
     entities: list[str] = []
     for value in compare_values or []:
@@ -501,8 +550,9 @@ def collect(
             signals.extend(source_signals)
             statuses.append(status)
 
+    deduped_signals, deduped_count = dedupe_signals(signals)
     ranked = sorted(
-        signals,
+        deduped_signals,
         key=lambda item: (item.score + item.comments * 2, item.date, item.title),
         reverse=True,
     )
@@ -513,6 +563,7 @@ def collect(
         "generated_at": dt.datetime.now(dt.timezone.utc).replace(microsecond=0).isoformat(),
         "plan": query_plan,
         "sources": [asdict(status) for status in statuses],
+        "deduped_count": deduped_count,
         "signals": [asdict(signal) for signal in ranked[:limit]],
         "next_checks": build_next_checks(statuses, ranked[:limit]),
     }
@@ -574,6 +625,8 @@ def render_markdown(report: dict[str, Any]) -> str:
         lines.append(
             f"- {source['source']}: {source['status']} ({source['count']} items{latency}{query}) - {source['detail']}"
         )
+    if report.get("deduped_count"):
+        lines.append(f"- dedupe: removed {report['deduped_count']} duplicate signals")
 
     lines.extend(["", "Signals:"])
     if not report["signals"]:
@@ -610,9 +663,10 @@ def render_brief(report: dict[str, Any]) -> str:
         "",
         f"Window: {report['since']} to {today} ({report['window_days']} days)",
         f"Sources checked: {source_labels(report)}",
-        "",
-        "Strongest signals:",
     ]
+    if report.get("deduped_count"):
+        lines.append(f"Deduped: removed {report['deduped_count']} duplicate signals")
+    lines.extend(["", "Strongest signals:"])
     if not report["signals"]:
         lines.append("1. No collector signals found in this run.")
     for index, signal in enumerate(report["signals"][:6], start=1):

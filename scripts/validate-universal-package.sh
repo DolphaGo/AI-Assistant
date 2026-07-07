@@ -214,6 +214,54 @@ if [ -f "plugins/recent-research/skills/recent-research/scripts/research.py" ]; 
     exit 1
   fi
 
+  recent_json_output=$(python3 plugins/recent-research/skills/recent-research/scripts/research.py \
+    "validator json" \
+    --mock \
+    --emit json)
+
+  if ! python3 -c 'import json,sys; data=json.load(sys.stdin); assert "deduped_count" in data' <<<"$recent_json_output"; then
+    echo "✗ Recent Research JSON output missing deduped_count"
+    rm -rf "$recent_tmp"
+    exit 1
+  fi
+
+  if ! python3 - <<'PY'
+import importlib.util
+import sys
+from pathlib import Path
+
+path = Path("plugins/recent-research/skills/recent-research/scripts/research.py")
+spec = importlib.util.spec_from_file_location("recent_research", path)
+module = importlib.util.module_from_spec(spec)
+assert spec.loader is not None
+sys.modules[spec.name] = module
+spec.loader.exec_module(module)
+signals = [
+    module.Signal("news", "Same Title", "https://example.com/a?utm_source=x", "2026-01-01"),
+    module.Signal("reddit", "Same Title", "https://example.com/a", "2026-01-01"),
+    module.Signal("github", "Different Title", "https://example.com/b", "2026-01-01"),
+]
+deduped, dropped = module.dedupe_signals(signals)
+assert len(deduped) == 2
+assert dropped == 1
+PY
+  then
+    echo "✗ Recent Research dedupe smoke failed"
+    rm -rf "$recent_tmp"
+    exit 1
+  fi
+
+  recent_npm_output=$(npm run -s recent-research -- \
+    "validator npm" \
+    --mock \
+    --emit brief)
+
+  if ! grep -q "Recent Research: validator npm" <<<"$recent_npm_output"; then
+    echo "✗ Recent Research npm entrypoint smoke output missing brief title"
+    rm -rf "$recent_tmp"
+    exit 1
+  fi
+
   rm -rf "$recent_tmp"
 fi
 

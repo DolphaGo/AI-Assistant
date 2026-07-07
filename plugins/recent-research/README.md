@@ -53,6 +53,8 @@ Skill 명령으로 사용할 때:
 스크립트를 직접 실행할 때:
 
 ```bash
+npm run recent-research -- "OpenTelemetry" --days 30 --emit brief
+
 cd plugins/recent-research/skills/recent-research
 python3 scripts/research.py "OpenTelemetry" --days 30 --emit brief
 ```
@@ -134,6 +136,7 @@ python3 scripts/research.py "OpenTelemetry" --plan /tmp/recent-research-plan.jso
 이 Skill의 결과는 최종 결론이 아니라 근거 스캐폴드입니다.
 
 - `Sources checked`에서 어떤 소스가 성공했는지 먼저 봅니다.
+- `Deduped`가 표시되면 URL 또는 제목 기준으로 중복 후보가 제거된 것입니다.
 - `Strongest signals`는 최근 공개 반응의 후보 근거입니다.
 - `My read`는 근거에서 나온 해석이므로 사실과 구분해서 봅니다.
 - `Gaps`는 소스 실패, 빈 결과, 얇은 증거를 보여줍니다.
@@ -159,7 +162,5 @@ python3 plugins/recent-research/skills/recent-research/scripts/research.py "vali
 ## 아직 개선하면 좋은 점
 
 - 소스별 요청 제한과 실패 원인을 더 세분화해서 표시하기
-- RSS와 커뮤니티 결과의 중복 URL/중복 제목 제거 강화하기
-- npm 또는 별도 명령 진입점으로 직접 실행 경로를 더 짧게 만들기
 - 실제 가져오기 후 Claude Code, Codex, OpenCode 각각에서 끝까지 실행한 검증 기록 남기기
 - 공식 문서나 릴리스 노트를 우선 조회하는 1차 출처 수집기 추가하기

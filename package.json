@@ -5,6 +5,7 @@
   "main": "plugins/hello-world/.claude-plugin/plugin.json",
   "scripts": {
     "validate": "./validate.sh && ./scripts/validate-universal-package.sh",
+    "recent-research": "python3 plugins/recent-research/skills/recent-research/scripts/research.py",
     "install-plugin": "./install.sh",
     "uninstall-plugin": "./uninstall.sh"
   },

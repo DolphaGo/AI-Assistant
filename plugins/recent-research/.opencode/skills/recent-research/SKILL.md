@@ -92,6 +92,7 @@ The script currently supports:
 - Recent news through public Google News RSS.
 - Source diagnostics through `doctor`.
 - Query planning through `--show-plan`, `--plan`, `--github-query`, `--hn-query`, `--reddit-query`, and `--news-query`.
+- URL and title deduplication before ranking signals.
 - Source-aware `next_checks` for follow-up verification before synthesis.
 - Structured comparison mode for `A vs B`, `A versus B`, and repeated `--compare` values.
 - Artifact saving through `--save-dir` and `--output`.
