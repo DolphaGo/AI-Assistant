@@ -12,6 +12,7 @@ import argparse
 import datetime as dt
 import html
 import json
+import re
 import sys
 import time
 import urllib.error
@@ -23,6 +24,7 @@ from typing import Any, Optional, Union
 
 USER_AGENT = "AI-Assistant recent-research/1.0"
 DEFAULT_SOURCES = ("github", "hackernews", "reddit")
+COMPARISON_SPLIT_RE = re.compile(r"\s+(?:vs\.?|versus)\s+", re.IGNORECASE)
 
 
 @dataclass
@@ -98,6 +100,29 @@ def describe_error(exc: BaseException) -> str:
     if isinstance(exc, urllib.error.URLError):
         return f"URL error: {clean_text(exc.reason, 160)}"
     return clean_text(exc, 180)
+
+
+def normalize_comparison_entities(topic: Optional[str], compare_values: Optional[list[str]]) -> list[str]:
+    entities: list[str] = []
+    for value in compare_values or []:
+        for item in value.split(","):
+            cleaned = clean_text(item, 80).strip()
+            if cleaned:
+                entities.append(cleaned)
+    if not entities and topic:
+        parts = [part.strip() for part in COMPARISON_SPLIT_RE.split(topic) if part.strip()]
+        if len(parts) >= 2:
+            entities.extend(parts)
+
+    deduped: list[str] = []
+    seen = set()
+    for entity in entities:
+        key = entity.casefold()
+        if key in seen:
+            continue
+        seen.add(key)
+        deduped.append(entity)
+    return deduped
 
 
 def github_signals(topic: str, days: int, limit: int, timeout: int) -> tuple[list[Signal], SourceStatus]:
@@ -255,10 +280,12 @@ def mock_signals(topic: str, days: int, limit: int) -> tuple[list[Signal], list[
             snippet="Mock community signal for validation.",
         ),
     ][:limit]
+    counts = {source: 0 for source in DEFAULT_SOURCES}
+    for sample in samples:
+        counts[sample.source] += 1
     statuses = [
-        SourceStatus("github", "ok", "mock", 1),
-        SourceStatus("hackernews", "ok", "mock", 1),
-        SourceStatus("reddit", "ok", "mock", 1),
+        SourceStatus(source, "ok", "mock", counts[source])
+        for source in DEFAULT_SOURCES
     ]
     return samples, statuses
 
@@ -302,17 +329,45 @@ def collect(topic: str, days: int, sources: list[str], limit: int, timeout: int,
     }
 
 
+def collect_comparison(
+    entities: list[str],
+    days: int,
+    sources: list[str],
+    limit: int,
+    timeout: int,
+    mock: bool,
+) -> dict[str, Any]:
+    reports = [
+        {
+            "entity": entity,
+            "report": collect(entity, days, sources, limit, timeout, mock),
+        }
+        for entity in entities
+    ]
+    return {
+        "topic": " vs ".join(entities),
+        "comparison": True,
+        "window_days": days,
+        "since": since_date(days).isoformat(),
+        "generated_at": dt.datetime.now(dt.timezone.utc).replace(microsecond=0).isoformat(),
+        "entities": reports,
+    }
+
+
 def source_labels(report: dict[str, Any]) -> str:
     labels = []
     for source in report["sources"]:
         label = f"{source['source']}:{source['status']}"
-        if source.get("count"):
+        if "count" in source:
             label += f"/{source['count']}"
         labels.append(label)
     return ", ".join(labels) if labels else "none"
 
 
 def render_markdown(report: dict[str, Any]) -> str:
+    if report.get("comparison"):
+        return render_comparison_markdown(report)
+
     lines = [
         f"Recent Research Evidence: {report['topic']}",
         "",
@@ -350,6 +405,9 @@ def render_markdown(report: dict[str, Any]) -> str:
 
 
 def render_brief(report: dict[str, Any]) -> str:
+    if report.get("comparison"):
+        return render_comparison_brief(report)
+
     today = utc_today().isoformat()
     lines = [
         f"Recent Research: {report['topic']}",
@@ -392,6 +450,95 @@ def render_brief(report: dict[str, Any]) -> str:
         lines.append(f"- {gap}")
     if not gaps and not empty_sources:
         lines.append("- No collector source failures. Still verify important claims with host web search or primary sources.")
+    return "\n".join(lines) + "\n"
+
+
+def entity_top_signal(report: dict[str, Any]) -> str:
+    signals = report.get("signals", [])
+    if not signals:
+        return "No collector signals found."
+    signal = signals[0]
+    metrics = []
+    if signal["score"]:
+        metrics.append(f"score {signal['score']}")
+    if signal["comments"]:
+        metrics.append(f"{signal['comments']} comments")
+    metric_text = f" ({', '.join(metrics)})" if metrics else ""
+    return f"{signal['title']} - {signal['source']}, {signal['date'] or 'unknown'}{metric_text}"
+
+
+def entity_gaps(report: dict[str, Any]) -> list[str]:
+    gaps = [
+        f"{source['source']} failed: {source['detail']}"
+        for source in report["sources"]
+        if source["status"] != "ok"
+    ]
+    gaps.extend(
+        f"{source['source']} returned no items"
+        for source in report["sources"]
+        if source["status"] == "ok" and source["count"] == 0
+    )
+    return gaps
+
+
+def render_comparison_brief(report: dict[str, Any]) -> str:
+    today = utc_today().isoformat()
+    lines = [
+        f"Recent Research Comparison: {report['topic']}",
+        "",
+        f"Window: {report['since']} to {today} ({report['window_days']} days)",
+        "",
+        "Entity snapshot:",
+    ]
+    for entity in report["entities"]:
+        entity_report = entity["report"]
+        lines.append(f"- {entity['entity']}: {source_labels(entity_report)}")
+        lines.append(f"  Top signal: {entity_top_signal(entity_report)}")
+
+    lines.extend(["", "Side-by-side signals:"])
+    for entity in report["entities"]:
+        entity_report = entity["report"]
+        lines.append("")
+        lines.append(f"{entity['entity']}:")
+        if not entity_report["signals"]:
+            lines.append("- No collector signals found.")
+            continue
+        for signal in entity_report["signals"][:3]:
+            metrics = []
+            if signal["score"]:
+                metrics.append(f"score {signal['score']}")
+            if signal["comments"]:
+                metrics.append(f"{signal['comments']} comments")
+            metric_text = f" ({', '.join(metrics)})" if metrics else ""
+            lines.append(f"- {signal['title']} - {signal['source']}, {signal['date'] or 'unknown'}{metric_text}")
+            if signal["snippet"]:
+                lines.append(f"  Evidence: {signal['snippet']}")
+            if signal["url"]:
+                lines.append(f"  URL: {signal['url']}")
+
+    lines.extend(["", "My read:", "- Treat this as a comparison evidence scaffold. Use host web search before making a winner claim."])
+    lines.extend(["", "Gaps:"])
+    any_gap = False
+    for entity in report["entities"]:
+        gaps = entity_gaps(entity["report"])
+        for gap in gaps:
+            any_gap = True
+            lines.append(f"- {entity['entity']}: {gap}")
+    if not any_gap:
+        lines.append("- No collector source failures. Still verify important claims with host web search or primary sources.")
+    return "\n".join(lines) + "\n"
+
+
+def render_comparison_markdown(report: dict[str, Any]) -> str:
+    lines = [
+        f"Recent Research Comparison Evidence: {report['topic']}",
+        "",
+        f"Window: {report['since']} to {utc_today().isoformat()} ({report['window_days']} days)",
+        f"Generated: {report['generated_at']}",
+    ]
+    for entity in report["entities"]:
+        lines.extend(["", f"## {entity['entity']}", ""])
+        lines.append(render_markdown(entity["report"]).rstrip())
     return "\n".join(lines) + "\n"
 
 
@@ -458,6 +605,7 @@ def run_doctor(sources: list[str], timeout: int, emit: str) -> int:
 def parse_args(argv: list[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Collect recent public signals for a topic.")
     parser.add_argument("topic", nargs="?", help="Research topic, or 'doctor' to probe sources")
+    parser.add_argument("--compare", action="append", help="Entity to compare. Repeat or comma-separate.")
     parser.add_argument("--days", type=int, default=30, help="Lookback window in days")
     parser.add_argument("--limit", type=int, default=8, help="Maximum signals to return")
     parser.add_argument("--timeout", type=int, default=12, help="HTTP timeout per source")
@@ -475,14 +623,23 @@ def main(argv: Optional[list[str]] = None) -> int:
     if args.topic == "doctor":
         return run_doctor(sources, args.timeout, args.emit)
     if not args.topic:
-        raise SystemExit("topic is required unless running 'doctor'")
+        comparison_entities = normalize_comparison_entities(None, args.compare)
+        if len(comparison_entities) < 2:
+            raise SystemExit("topic is required unless running 'doctor' or at least two --compare values")
+    else:
+        comparison_entities = normalize_comparison_entities(args.topic, args.compare)
     if args.days < 1:
         raise SystemExit("--days must be at least 1")
     if args.limit < 1:
         raise SystemExit("--limit must be at least 1")
-    report = collect(args.topic, args.days, sources, args.limit, args.timeout, args.mock)
+    if comparison_entities:
+        if len(comparison_entities) < 2:
+            raise SystemExit("comparison mode requires at least two entities")
+        report = collect_comparison(comparison_entities, args.days, sources, args.limit, args.timeout, args.mock)
+    else:
+        report = collect(args.topic, args.days, sources, args.limit, args.timeout, args.mock)
     content = render_output(report, args.emit)
-    saved_path = save_output(content, args.topic, args.emit, args.save_dir, args.output)
+    saved_path = save_output(content, report["topic"], args.emit, args.save_dir, args.output)
     print(content, end="")
     if saved_path:
         print(f"[recent-research] Saved output to {saved_path}", file=sys.stderr)

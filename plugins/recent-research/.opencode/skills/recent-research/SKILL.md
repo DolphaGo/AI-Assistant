@@ -39,6 +39,13 @@ python3 scripts/research.py doctor
 python3 scripts/research.py "<topic>" --days 30 --emit brief
 ```
 
+For explicit comparisons, use either natural `A vs B` phrasing or repeated `--compare` flags:
+
+```bash
+python3 scripts/research.py "Codex vs Cursor" --days 30 --emit brief
+python3 scripts/research.py --compare Codex --compare Cursor --days 30 --emit brief
+```
+
 Use `--emit markdown` for raw evidence, `--emit json` for structured data, and `--mock` only for validation or demos. Use `--save-dir <dir>` or `--output <file>` when the user asks for a reusable artifact.
 
 4. If host web search is available and the topic is current, supplement with 2-4 targeted searches:
@@ -56,6 +63,7 @@ The script currently supports:
 - Hacker News story and comment signals through the public Algolia API.
 - Reddit public search when Reddit allows unauthenticated JSON access.
 - Source diagnostics through `doctor`.
+- Structured comparison mode for `A vs B`, `A versus B`, and repeated `--compare` values.
 - Artifact saving through `--save-dir` and `--output`.
 - Brief, Markdown, and JSON output.
 - A mock mode for deterministic validation without network access.
@@ -74,4 +82,5 @@ Use `doctor` results to distinguish local/source availability problems from topi
 - "최근 30일 동안 Linear MCP 관련 시그널 봐줘."
 - "Before my meeting, brief me on recent GitHub and community activity for OpenTelemetry."
 - "Compare recent developer chatter around Supabase and Neon."
+- "Compare Codex, Cursor, and Claude Code recent community signals."
 - "Run recent-research doctor and tell me which sources are available."

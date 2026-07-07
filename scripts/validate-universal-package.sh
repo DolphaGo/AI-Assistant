@@ -169,6 +169,18 @@ if [ -f "plugins/recent-research/skills/recent-research/scripts/research.py" ]; 
     exit 1
   fi
 
+  recent_compare_output=$(python3 plugins/recent-research/skills/recent-research/scripts/research.py \
+    "validator left vs validator right" \
+    --mock \
+    --emit brief \
+    --limit 1)
+
+  if ! grep -q "Recent Research Comparison: validator left vs validator right" <<<"$recent_compare_output"; then
+    echo "✗ Recent Research comparison smoke output missing comparison title"
+    rm -rf "$recent_tmp"
+    exit 1
+  fi
+
   rm -rf "$recent_tmp"
 fi
 
