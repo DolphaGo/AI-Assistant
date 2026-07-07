@@ -167,6 +167,8 @@ python3 scripts/research.py doctor
 
 설치 또는 가져오기 후에는 Claude Code, Codex, OpenCode에서 같은 패키지를 재사용할 수 있도록 플랫폼별 매니페스트가 포함되어 있습니다. 자세한 기능, 옵션, 저장 경로는 [recent-research 사용 가이드](plugins/recent-research/README.md)를 참고하세요.
 
+참고 프로젝트: [mvanhorn/last30days-skill](https://github.com/mvanhorn/last30days-skill). `recent-research`는 이 프로젝트의 “최근 공개 시그널을 모아 근거 기반 요약을 만든다”는 제품 방향에서 영감을 받았고, 이 저장소에서는 더 작은 범위의 키 없는 collector와 범용 플러그인 패키징에 맞게 별도로 구현했습니다.
+
 ## 🗂️ 디렉토리 구조
 
 ```

@@ -14,6 +14,19 @@
 
 `npm run validate` 기준으로 패키지 구조, OpenCode 복사본 불일치 검사, 기본 실행 검사가 통과해야 합니다.
 
+## 참고한 프로젝트
+
+이 스킬은 [mvanhorn/last30days-skill](https://github.com/mvanhorn/last30days-skill)의 제품 방향을 참고했습니다. 해당 프로젝트는 `/last30days` 명령으로 Reddit, X, YouTube, Hacker News, Polymarket, web 같은 여러 공개 시그널을 탐색하고 근거 기반 요약을 만드는 AI agent skill입니다.
+
+`recent-research`는 원본을 복제한 것이 아니라, 다음 방향만 참고해 이 저장소의 범용 플러그인 구조에 맞게 별도로 구현했습니다.
+
+- 최근 기간의 공개 시그널을 먼저 수집한 뒤 요약한다.
+- 단일 검색 결과보다 여러 소스의 반응을 함께 본다.
+- 근거, 해석, 빈틈을 분리해 리서치 결과를 작성한다.
+- 스킬로 import해서 반복 사용할 수 있게 패키징한다.
+
+현재 구현은 API 키 없이 바로 동작하는 GitHub, Hacker News, Reddit, Google News RSS 중심의 경량 collector입니다. X, YouTube, Polymarket 같은 인증 또는 별도 설정이 필요한 소스는 아직 포함하지 않았습니다.
+
 ## 어떤 기능을 하나요?
 
 - GitHub 저장소와 이슈 활동을 조회합니다.
