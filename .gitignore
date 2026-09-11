@@ -33,3 +33,8 @@ tmp/
 temp/
 *.tmp
 .omx/
+
+# feature-workflow runtime artifacts
+docs/*/.fw.lock
+docs/*/logs/
+docs/*/STOP

@@ -136,9 +136,29 @@ Claude Code, Codex, OpenCode에서 재사용할 수 있는 배포용 플러그�
 - Marketplace: `.agents/plugins/marketplace.json`
 - Hello World: `plugins/hello-world/`
 - Workflow: `plugins/workflow/`
+- Feature Workflow: `plugins/feature-workflow/`
 - Recent Research: `plugins/recent-research/`
 
 자세한 구조는 [Universal Open Market Package](docs/universal-openmarket.md)를 참고하세요.
+
+
+### feature-workflow 사용법
+
+`feature-workflow`는 큰 피처, 마이그레이션, 멀티모듈 리팩토링처럼 여러 세션에 걸치는 작업을 `PLAN.md`, `STATE.json`, `NOTES.md` 3종 문서로 이어가게 하는 범용 workflow skill입니다. Claude Code 명령, Codex skill package, OpenCode command adapter를 함께 포함하고, `plugins/feature-workflow/harness/`에는 선택적으로 사용할 수 있는 `fw` CLI 하네스가 있습니다.
+
+빠른 실행 예시:
+
+```bash
+# AI assistant command/skill로 시작
+/feature-workflow:start order-data-migration
+/feature-workflow:resume
+
+# 선택: fw harness 설치
+npm run fw:install
+fw doctor docs/order-data-migration --no-run
+```
+
+자세한 흐름과 하네스 명령은 [feature-workflow README](plugins/feature-workflow/README.md)를 참고하세요.
 
 ### recent-research 사용법
 
@@ -157,6 +177,7 @@ Claude Code, Codex, OpenCode에서 재사용할 수 있는 배포용 플러그�
 # Skill 명령으로 실행
 /recent-research OpenTelemetry
 /recent-research Codex vs Cursor
+/feature-workflow:start order-data-migration
 
 # 스크립트를 직접 실행
 npm run recent-research -- "OpenTelemetry" --days 30 --emit brief
@@ -185,6 +206,7 @@ ai-assistant/
 ├── plugins/
 │   ├── hello-world/          # Claude/Codex/OpenCode 배포용 예제 플러그인 패키지
 │   ├── workflow/             # 작업 연속성 workflow 플러그인 패키지
+│   ├── feature-workflow/     # 큰 feature/migration workflow + fw harness 패키지
 │   └── recent-research/      # 최근 공개 시그널 research 제품형 skill 패키지
 ├── skills/
 │   └── examples/         # 예제 skills

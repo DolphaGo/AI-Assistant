@@ -1,0 +1,25 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "command": {
+    "feature-workflow-start": {
+      "template": "Use the feature-workflow start command from .opencode/commands/start.md with these arguments: $ARGUMENTS",
+      "description": "Start a durable PLAN/NOTES/STATE workflow for a large feature or migration"
+    },
+    "feature-workflow-resume": {
+      "template": "Use the feature-workflow resume command from .opencode/commands/resume.md with these arguments: $ARGUMENTS",
+      "description": "Resume the next phase from PLAN.md, STATE.json, and NOTES.md"
+    },
+    "feature-workflow-review": {
+      "template": "Use the feature-workflow review command from .opencode/commands/review.md with these arguments: $ARGUMENTS",
+      "description": "Review phase output with separated implementation/domain/evaluation lenses"
+    },
+    "feature-workflow-notes": {
+      "template": "Use the feature-workflow notes command from .opencode/commands/notes.md with these arguments: $ARGUMENTS",
+      "description": "Update NOTES.md and STATE.json after a phase"
+    },
+    "feature-workflow-verify": {
+      "template": "Use the feature-workflow verify command from .opencode/commands/verify.md with these arguments: $ARGUMENTS",
+      "description": "Verify moved or generated workflow output for omissions and drift"
+    }
+  }
+}
