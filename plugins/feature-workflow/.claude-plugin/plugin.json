@@ -1,0 +1,26 @@
+{
+  "name": "feature-workflow",
+  "version": "1.2.1",
+  "description": "Large feature and migration workflow with durable PLAN/STATE/NOTES handoff files and an optional fw harness.",
+  "author": {
+    "name": "DolphaGo"
+  },
+  "license": "MIT",
+  "keywords": [
+    "workflow",
+    "planning",
+    "handoff",
+    "migration",
+    "feature"
+  ],
+  "skills": {
+    "feature-workflow": [
+      "skills/*/SKILL.md"
+    ]
+  },
+  "commands": {
+    "feature-workflow": [
+      "commands/*.md"
+    ]
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "name": "feature-workflow",
+  "version": "1.2.1",
+  "description": "Large feature and migration workflow with durable PLAN/STATE/NOTES handoff files and an optional fw harness.",
+  "author": {
+    "name": "DolphaGo",
+    "url": "https://github.com/DolphaGo"
+  },
+  "repository": "https://github.com/DolphaGo/AI-Assistant",
+  "license": "MIT",
+  "keywords": [
+    "workflow",
+    "planning",
+    "handoff",
+    "migration",
+    "feature"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Feature Workflow",
+    "shortDescription": "Run large feature work through durable plans, state, notes, verification, and handoff.",
+    "longDescription": "A portable workflow skill for large features, migrations, refactors, and multi-session work. It keeps PLAN.md, STATE.json, and NOTES.md as shared context so Claude, Codex, OpenCode, or another AI assistant can continue the same workflow. The optional fw harness provides automated phase execution for environments that support its runtime.",
+    "developerName": "DolphaGo",
+    "category": "Productivity",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://dolphago.github.io/AI-Assistant/",
+    "defaultPrompt": [
+      "Use Feature Workflow to start a durable plan for this large feature.",
+      "Use Feature Workflow to resume the next phase from PLAN.md, STATE.json, and NOTES.md."
+    ],
+    "brandColor": "#0F766E"
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "workflow": "REPLACE-ME",
+  "repo_root": "REPLACE-ME-absolute-repo-root-path",
+  "branch_strategy": "isolate",
+  "allow_push": false,
+  "verify_default": ["REPLACE-ME-verify-command-예-gradlew-build-반드시-실패-시-non-zero-exit"],
+  "verify_timeout_ms": null,
+  "pr_mode": false,
+  "poll_interval_ms": 60000,
+  "base_branch": "main",
+  "max_fix_sessions": 10,
+  "trusted_comment_authors": [],
+  "pr_comment_mode": "trusted",
+  "status": "running",
+  "pending_question": null,
+  "answers": [],
+  "phases": [
+    {
+      "id": 1,
+      "title": "REPLACE-ME-PLAN.md-phase-1-제목과-동일하게",
+      "status": "pending",
+      "depends_on": [],
+      "verify": [],
+      "attempts": 0,
+      "max_attempts": 2,
+      "sessions": [],
+      "next_steps": []
+    }
+  ]
+}
