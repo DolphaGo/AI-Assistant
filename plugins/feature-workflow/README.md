@@ -1,19 +1,50 @@
-# feature-workflow — 큰 작업을 끝까지 끌고 가는 워크플로우 + 무인 하네스
+# feature-workflow — 근거 기반 기본 작업 방식 + 무인 하네스
 
 > "세션이 끊겨도, 자리를 비워도, 작업은 같은 규칙으로 끝까지 간다."
 
-`feature-workflow` 는 **여러 세션·여러 날에 걸치는 큰 작업**(마이그레이션·멀티모듈 리팩토링·다단계 피처)을
-위한 Claude Code, Codex, OpenCode에서 재사용할 수 있는 플러그인입니다. 두 층으로 이루어져 있습니다.
+`feature-workflow`는 사실 확인·출처·검수를 계획과 진행 기록에 통합하는 플러그인입니다.
+짧은 답변은 파일 없이 출처를 확인하고, 기록이 필요한 작업은 PLAN·NOTES·STATE로 이어받습니다.
+여러 단계 작업은 phase로 나누며, 무인 실행은 `fw` 하네스로 진행합니다.
 
 | 층 | 무엇 | 언제 쓰나 |
 |---|---|---|
-| **유인 스킬/커맨드** (`/feature-workflow:start` 등) | 사람이 Claude Code 세션을 운전하며 brainstorm → plan → phase 실행 → verify 를 밟는 **규약** | 사람이 옆에 있을 때 |
-| **무인 하네스** (`fw` CLI) | 같은 규약을 **모델이 어길 수 없는 코드**로 옮긴 오케스트레이터. 3역할 인터뷰 → phase 순차 실행 → 적대적 검증 → 합의를 사람 없이 돈다 | 밤새 돌리고 아침에 결과를 볼 때 |
+| **유인 스킬/커맨드** | Claude 명령 또는 Codex 지시서 읽기로 brainstorm → plan → phase 실행 → verify 를 밟는 **규약** | 사람이 옆에 있을 때 |
+| **무인 하네스** (`fw` CLI) | 실행 권한·상태 전이·검증 명령을 코드로 관리하는 오케스트레이터. 3역할 인터뷰 → phase 순차 실행 → 적대적 검증 → 합의를 사람 없이 돈다 | 밤새 돌리고 아침에 결과를 볼 때 |
 
 두 층은 `docs/<workflow>/` 아래 **PLAN.md · NOTES.md · STATE.json** 3종 문서를 공유하므로,
 유인으로 시작해서 무인으로 돌리고 다시 유인으로 이어받는 왕복이 자유롭습니다.
 
 ---
+
+## 근거와 기본 적용
+
+- 사실은 이번 작업에서 확인한 원천으로 말하고 출처를 붙입니다. 미확정·판정·제안은 구분합니다.
+- NOTES의 사실(F ID)·검증(V ID)이 근거 원장입니다. 별도 ledger/output/review 문서를 만들지 않습니다.
+- 재개할 때 기록을 현재 소스·설정·Git·실행 결과와 대조합니다.
+- 남는 산출물은 원천과 대조하고 검수 방식·미검증 범위를 남깁니다.
+- 근거 규칙은 스킬과 SDK 세션 지시로 전달됩니다. 테스트는 지시 전달과 파일 보존을 확인하며,
+  실제 모델이 생성하는 사실의 진실성을 자동으로 보증하지는 않습니다.
+
+매 대화에 적용하려면 사용하는 도구의 전역 지침에 다음 원칙을 명시하고 설치된 스킬을 읽게 합니다.
+플러그인이 전역 설정을 자동으로 수정하지는 않습니다.
+
+> 매 대화에서 feature-workflow를 기본으로 적용한다. 사실은 원천과 출처로 확인한다.
+> 짧은 답변은 파일 없이, 기록이 필요한 작업은 PLAN·NOTES·STATE로 관리한다.
+
+## [Claude]·[Codex] 설치와 사용
+
+| 구분 | [Claude] | [Codex] |
+|---|---|---|
+| 설치 | `/plugin install feature-workflow@AI-Assistant` 설치 화면에서 범위 선택 | `skills/feature-workflow` 폴더를 `~/.agents/skills/feature-workflow`에 연결하거나 원본 SKILL.md 읽기 |
+| 시작·재개 | `/feature-workflow:start`, `/feature-workflow:resume` | `commands/start.md`·`commands/resume.md`를 읽고 수행하도록 요청 |
+| 기록·검수 | `/feature-workflow:notes`, `/feature-workflow:verify` | `commands/notes.md`·`commands/verify.md`를 읽고 수행하도록 요청 |
+| 기본 적용 | `~/.claude/CLAUDE.md`에 스킬 원본과 원칙 지정 | Codex 전역 AGENTS.md 또는 프로젝트 AGENTS.md에 지정 |
+| 무인 실행 | Claude Agent SDK 인증 후 `fw run` | 기록은 공유 가능. `fw run`의 세션 엔진은 Claude Agent SDK |
+
+절차와 기존 설정을 보존하는 연결 예제는
+[설치 가이드](../../docs/universal-openmarket.md)를 확인하세요.
+아래 `/feature-workflow:*` 예제는 Claude Code 명령입니다. Codex에서는 대응하는 지시서 파일을 읽힙니다.
+무인 하네스는 두 도구의 명령을 자동 변환하는 실행기가 아닙니다.
 
 ## 목차
 
@@ -98,7 +129,7 @@ flowchart LR
     subgraph finish["👤 끝 — 사람"]
         Q["BLOCKED 질문에 답<br/>fw answer"]
         MERGE["PR 리뷰 · 머지"]
-        JUDGE["VERIFY.md · fw report 로<br/>최종 판정"]
+        JUDGE["NOTES.md · fw report 로<br/>최종 판정"]
     end
 
     G --> IV
@@ -116,7 +147,7 @@ flowchart LR
 |---|---|---|
 | 인터뷰 | 세 역할이 질문·초안·상호 이의 라운드를 반복 | 질문에 답하기, 승인(`--force` 포함) |
 | 실행 | phase 별 세션 실행 · 게이트 판정 · 재시도 | 없음 (BLOCKED 질문이 오면 답하기) |
-| 검증 + 합의 | 3역할 적대 검증 + 합의문 작성 | VERIFY.md 읽고 최종 판정 |
+| 검증 + 합의 | 3역할 적대 검증 + 합의문 작성 | NOTES.md 읽고 최종 판정 |
 
 비용은 세션마다 STATE.json 에 기록되고 `max_cost_usd` 로 상한을 걸 수 있습니다. 실제 금액은 모델·리포·재시도
 횟수에 따라 크게 달라지므로 여기에는 적지 않습니다 — 본인 환경에서 `fw report` 로 직접 재는 것이 정확합니다.
@@ -125,51 +156,22 @@ flowchart LR
 
 ## 3. 산출물 — 누가 쓰고 누가 읽나
 
-워크플로우 하나는 `docs/<workflow>/` 디렉토리 하나입니다. 유인·무인 어느 모드든 **3종 문서는
-항상 존재**하고, `fw interview` / `fw verify` 를 실행하면 2종이 더 생깁니다(유인 모드에서도 두 명령은 쓸 수 있습니다).
+기록이 필요한 워크플로우는 `docs/<workflow>/`의 관리 문서 세 파일을 사용합니다.
+짧은 조회·답변에는 파일을 생성하지 않습니다.
 
-```mermaid
-flowchart TB
-    subgraph dir["docs/&lt;workflow&gt;/"]
-        PLAN["PLAN.md<br/>마스터 플랜 · §핵심 결정 표 · §용어 표<br/>§개발 방향 · §검증 기준"]
-        NOTES["NOTES.md<br/>사람용 서사만<br/>이관 맵 · 리스크 · 트러블슈팅 · 결정 배경"]
-        STATE["STATE.json<br/>phase 목록·상태·시도·PR·next_steps<br/>비용·세션 이력·판정 — 기계 사실의 유일한 진실"]
-        IVJ["INTERVIEW.json<br/>인터뷰 질문·답·초안·이의 이력"]
-        VERI["VERIFY.md<br/>3역할 검증 보고서 + 합의문"]
-        LOGS["logs/ (gitignore)<br/>run-&lt;ts&gt;.log · phase-N-attempt-M.log"]
-    end
+| 파일 | 담는 것 | 작성자 |
+|---|---|---|
+| `PLAN.md` | 목표·범위·phase 목록·핵심 결정과 근거·용어·검증 기준 | 사용자/유인 세션, 인터뷰 승인 시 하네스. 무인 phase 중에는 동결 |
+| `NOTES.md` | 사실·출처·실제 검증 결과·미확정·원천 충돌·검수·결정 배경 | 유인/무인 작성 세션, 하네스는 검수 결과를 누적 |
+| `STATE.json` | phase 상태·시도·next_steps·PR·비용·세션 이력·하네스 판정 | 유인에서는 세션, 무인에서는 하네스만 |
 
-    Human["👤 사람"] -- "start 스킬로 작성<br/>fw answer 로 결정 append" --> PLAN
-    Human -- "유인 모드에서 갱신" --> NOTES
-    Human -- "유인 모드에서 갱신" --> STATE
-    Harness["🤖 fw 하네스"] -- "단일 작성자 (무인 모드)" --> STATE
-    Harness -- "승인 시점에 1회 조립" --> PLAN
-    Harness -- "소유" --> IVJ
-    Harness -- "마무리에 작성" --> VERI
-    Harness -- "append" --> LOGS
-    Session["🤖 무인 세션"] -- "읽기만 · §결정/§용어는 프롬프트에 주입됨" --> PLAN
-    Session -- "읽기 전용 (쓰기 차단)" --> STATE
-    Session -- "권장 갱신" --> NOTES
-```
+PLAN의 phase 제목·개수·순서는 STATE와 일치시킵니다. NOTES에 phase 상태 표를 복제하지 않습니다.
+STATE는 기록된 상태의 관리 기준이며, 현재 코드 동작의 확정 근거를 대신하지 않습니다.
 
-| 파일 | 담는 것 | 담지 않는 것 | 작성자 |
-|---|---|---|---|
-| `PLAN.md` | 변하지 않는 마스터 플랜. **§핵심 결정 사항 표**(ID·결정·근거·상태·날짜), **§용어 표**, §개발 방향, §검증 기준, Phase 표 | 진행 상태 | 사람(유인) / `fw interview-approve` 가 초안 조립 / `fw answer` 가 결정 행 append. **무인 주행 중에는 동결** — 세션이 쓸 수 없음 |
-| `NOTES.md` | 사람용 서사 — 이관 맵, 리스크, 트러블슈팅, "왜 이렇게 했나" | phase 상태 표 (그건 `fw status` 로 본다) | 사람 또는 세션 |
-| `STATE.json` | phase 목록·상태·시도 횟수·`next_steps`·PR 번호·세션 이력·비용·하네스 판정·BLOCKED 질문과 답 | 서사 | **유인**: 세션이 직접 갱신 / **무인**: 하네스만 (세션은 읽기 전용) |
-| `INTERVIEW.json` | 3역할 인터뷰의 질문(P1/D1/E1…)·답·역할별 초안·이의 이력·세션 수·비용 | — | `fw interview` (하네스) |
-| `VERIFY.md` | 역할별 적대 검증 보고서 + 합의(합의된 완료·문제·이견·다음 목표) | — | `fw run` 마무리 · `fw verify` (하네스) |
-
-**PLAN 의 Phase 표와 STATE 의 `phases` 는 항상 같은 목록**(제목·개수·순서)이어야 합니다. STATE 는
-거기에 상태·시도·next_steps 를 얹을 뿐입니다.
-
-**INTERVIEW.json 과 VERIFY.md 가 3종에 합쳐지지 않고 따로인 이유**는 수명과 덮어쓰기 규칙이 다르기
-때문입니다. INTERVIEW.json 은 PLAN·STATE 가 아직 없는 시점에 만들어지고 승인 뒤에는 감사 기록으로만
-남습니다(Q&A 는 PLAN §핵심 결정 행으로, 미해소 이의는 PLAN "미검증 승인" 절로 이미 옮겨짐). VERIFY.md 는
-`fw verify` 를 돌릴 때마다 통째로 재생성되는 기계 출력이라, 사람 서사인 NOTES 나 주행 중 동결되는 PLAN 에
-넣으면 그 문서들의 규칙이 깨집니다. 유인 모드에서 같은 일을 할 때는 `/start` 가 인터뷰 결과를 PLAN 결정
-표에, `/review`·`/verify` 가 검토 결과를 NOTES 에 직접 적습니다 — 두 파일이 없는 것이 아니라 내용이
-3종 안에 들어가는 것입니다.
+하네스 내부 상태 `INTERVIEW.json`은 인터뷰 진행·감사를 위해 유지하고 실행 로그도 보존합니다.
+새 `fw run`/`fw verify` 검수 결과는 **NOTES에 누적**하며 기존 사실·검증·이전 검수 내용을 덮어쓰지 않습니다.
+이전 버전의 `VERIFY.md`는 과거 원문으로 남기고 새 결과로 덮어쓰지 않습니다.
+외부 스크립트가 최신 검수를 읽는다면 `VERIFY.md` 대신 NOTES의 `하네스 검수` 절을 읽도록 변경해야 합니다.
 
 ---
 
@@ -179,7 +181,7 @@ flowchart TB
 
 | 진입점 | 방식 | 어울리는 상황 |
 |---|---|---|
-| **A. `/feature-workflow:start <이름>`** | AI assistant 세션에서 사람이 brainstorm. 브랜치 위치 합의 → 목표·모호점 질문(추천 답안 동봉) → 3종 문서 생성 | 사람이 옆에 있고, 목표가 어느 정도 선명할 때. 빠르다 |
+| **A. `/feature-workflow:start <이름>`** | Claude Code 세션에서 사람이 brainstorm. 브랜치 위치 합의 → 목표·모호점 질문(추천 답안 동봉) → 3종 문서 생성 | 사람이 옆에 있고, 목표가 어느 정도 선명할 때. 빠르다 |
 | **B. `fw interview <이름> --goal "..."`** | 기획·개발·평가 세 에이전트가 각자 관점에서 **끝까지 캐묻고**, 서로의 초안에 이의를 걸어 수렴시킨 뒤 PLAN 초안을 자동 조립 | 목표만 있고 계획이 없을 때. 인터뷰 종료 조건이 기계적이라 "이 정도면 충분" 이라는 모델의 자기 주장으로 끝나지 않는다 |
 
 두 진입점은 결과물이 같습니다(`docs/<이름>/PLAN.md` + `STATE.json` + `NOTES.md`). B 는
@@ -501,12 +503,12 @@ flowchart LR
     EV --> CON
     PL --> CON
     DV --> CON["합의 세션 (역할 2개 이상일 때)<br/>① 합의된 완료 ② 합의된 문제<br/>③ 이견 (뭉개지 않음) ④ 다음 목표 제안"]
-    CON --> VM["VERIFY.md"]
+    CON --> VM["NOTES.md"]
     CON --> NG["STATE.next_goal_suggestions<br/>(기록만 — 다음 사이클을 열지는 사람이 결정)"]
 ```
 
 - 검증관은 **읽기 전용**이며 파일을 고치지 않습니다.
-- 비용 상한(`max_cost_usd`)에 닿으면 남은 역할을 생략하되, **생략했다는 사실을 VERIFY.md 에 명시**합니다(조용한 생략은 "전부 검증했다"로 읽힘).
+- 비용 상한(`max_cost_usd`)에 닿으면 남은 역할을 생략하되, **생략했다는 사실을 NOTES.md 에 명시**합니다(조용한 생략은 "전부 검증했다"로 읽힘).
 - 검증 보고서는 부산물 — 실패해도 `done` 판정을 막지 않습니다. 대신 `fw verify <dir> --budget 10` 으로 완주한 워크플로우에 사후 검증만 다시 돌릴 수 있습니다.
 - 합의 출력이 무의미하게 퇴화하면(예: "a", "b") 스키마를 통과했어도 1회 재시도합니다.
 
@@ -565,7 +567,7 @@ stateDiagram-v2
 | `awaiting_merge` | PR approve 됨 | PR 머지 → `fw run` | 0 |
 | `halted` | STOP·상한으로 정지 | 필요하면 상한 조정 → `fw run` | 0 |
 | `failed` | 재시도 소진·치명 오류 | `fw log` 로 원인 확인 → `fw retry <phase>` → `fw run` | 1 |
-| `done` | 전 phase 완료 | `VERIFY.md`·`fw report`·`git log` 검토 | 0 |
+| `done` | 전 phase 완료 | `NOTES.md`·`fw report`·`git log` 검토 | 0 |
 
 ---
 
@@ -642,9 +644,9 @@ fw --version
 |---|---|---|
 | Node.js | ≥ 22.12 | `node -v` |
 | git | ≥ 2.11 | `git --version` |
-| Harness Agent SDK 인증 | `claude setup-token` 완료 또는 `ANTHROPIC_API_KEY` | `echo $ANTHROPIC_API_KEY` |
+| Agent SDK 인증 | Claude Agent SDK에서 사용할 인증 준비 | 비밀값을 출력하지 않고 인증 준비 여부 확인. 실제 접근은 별도 세션으로 검증 |
 | `gh` 인증 | PR 모드만 | `gh auth status` |
-| OS | 어디든 동작. 알림은 macOS(`osascript`)·Linux(`notify-send`), 그 외는 stderr 배너만 | — |
+| 알림 구현 | macOS(`osascript`)·Linux(`notify-send`), stderr 배너 출력 | `harness/src/notify.ts`; 하네스의 OS별 실동작은 별도 검증 |
 
 ### 7.2 시나리오 A — 빠른 시작 (유인 start → 무인 run)
 
@@ -769,7 +771,7 @@ nohup fw run order-migration > /dev/null 2>&1 &
 flowchart TD
     N{"어떤 알림?"}
     N -- "fw 완료 ✅" --> A["fw report &lt;dir&gt;<br/>phase 별 시도·비용·회송 사유·findings·다음 목표 제안"]
-    A --> B["cat docs/&lt;dir&gt;/VERIFY.md<br/>3역할 검증 + 합의 — 이견 절을 특히"]
+    A --> B["cat docs/&lt;dir&gt;/NOTES.md<br/>3역할 검증 + 합의 — 이견 절을 특히"]
     B --> C["git log feature/&lt;workflow&gt;<br/>phase 별 커밋 리뷰"]
     C --> D{"됐다고 판정?"}
     D -- 예 --> E["PR 올리거나 머지 · 다음 목표 제안을 새 사이클로"]
@@ -821,7 +823,7 @@ PR 폴링 sleep 후)에서 멈춥니다. 돌고 있는 세션을 중간에 죽�
 "pr_mode": true,
 "allow_push": true,
 "base_branch": "main",
-"trusted_comment_authors": ["adamdoha", "reviewer-login"],   // 로그인, 대소문자 무시
+"trusted_comment_authors": ["DolphaGo", "reviewer-login"],   // 로그인, 대소문자 무시
 "pr_comment_mode": "trusted",                                 // 또는 "off" — PR 만 만들고 코멘트는 안 읽음
 "poll_interval_ms": 60000,
 "max_fix_sessions": 10
@@ -855,7 +857,7 @@ flowchart LR
 - **유인 모드에서는 세션이 STATE.json 을 직접 갱신**합니다. phase 를 끝냈으면 `status: "done"` 으로 바꾸고 다음 phase 의 `next_steps` 를 채운 뒤 커밋합니다. 이걸 빼먹으면 `fw run` 이 끝난 phase 를 다시 실행합니다.
 - **무인 모드에서는 세션이 STATE.json 을 쓸 수 없습니다**(권한 게이트가 차단). 하네스가 판정 후 직접 씁니다.
 - `/feature-workflow:review` 는 phase 구현 후·커밋 전에 **개발(코드 결함)·도메인(내용 허위/누락)·평가(측정 정직성)** 렌즈의 검토관을 병렬로 띄워 확정 결함만 잡는 커맨드입니다. 변경 규모에 따라 1~3인을 투입하고, 지적은 재검증 후에만 반영합니다.
-- `/feature-workflow:notes` 는 phase 종료 시점에 NOTES(서사)와 STATE(상태·next_steps)를 함께 갱신하고 커밋합니다. **phase 상태 표를 NOTES 에 적지 않습니다** — 현황은 `fw status` 로 봅니다.
+- `/feature-workflow:notes` 는 phase 종료 시점에 NOTES(근거·검증·검수)와 STATE(상태·next_steps)를 함께 갱신하고 커밋합니다. **phase 상태 표를 NOTES 에 적지 않습니다** — 현황은 `fw status` 로 봅니다.
 
 ---
 
@@ -891,7 +893,7 @@ flowchart LR
 | `fw stop <dir>` | STOP 파일 생성 → 다음 체크포인트에서 정지 | — |
 | `fw log <dir> [--last N]` | STATE 요약 + 세션 이력·비용 + run 로그 목록(+ 마지막 N줄) | — |
 | `fw report <dir>` | 시도·세션·비용·회송 사유·findings·다음 목표 제안 집계 | — |
-| `fw verify <dir> [--budget <usd>]` | 완주 워크플로우에 3역할 적대 검증 + 합의를 사후 실행, VERIFY.md 갱신 | — |
+| `fw verify <dir> [--budget <usd>]` | 완주 워크플로우에 3역할 적대 검증 + 합의를 사후 실행, NOTES.md 검수 누적 | — |
 | `fw --version` | 버전 | — |
 
 ### 8.3 STATE.json 필드
@@ -1060,7 +1062,6 @@ plugins/feature-workflow/
 └── docs/<workflow>/
     ├── PLAN.md · NOTES.md · STATE.json
     ├── INTERVIEW.json                 # fw interview 사용 시
-    ├── VERIFY.md                      # 완주 후
     ├── logs/                          # gitignore — run-*.log · phase-N-attempt-M.log
     ├── .fw.lock                       # gitignore — 동시 실행 가드
     └── STOP                           # gitignore — 킬 스위치 (일시)

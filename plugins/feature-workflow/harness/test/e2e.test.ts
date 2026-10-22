@@ -66,8 +66,9 @@ describe("e2e: blocked → answer → 재개 → 완주", () => {
     s = await runWorkflow(dir, deps);
     expect(s.status).toBe("done");
     expect(s.phases.every(p => p.status === "done")).toBe(true);
-    // 검증 로그와 VERIFY 보고서가 남았다
-    expect(fs.existsSync(path.join(dir, "VERIFY.md"))).toBe(true);
+    // 검증 로그와 NOTES의 검수 기록이 남았다
+    expect(fs.readFileSync(path.join(dir, "NOTES.md"), "utf-8")).toContain("검수");
+    expect(fs.existsSync(path.join(dir, "VERIFY.md"))).toBe(false);
     expect(fs.readdirSync(path.join(dir, "logs")).length).toBeGreaterThan(0);
   });
 });

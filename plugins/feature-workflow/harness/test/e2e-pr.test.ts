@@ -85,6 +85,7 @@ describe("e2e PR 루프: 생성 → 코멘트 반영 → approve 정지 → 재�
     s = await runWorkflow(dir, deps);
     expect(s.status).toBe("done");
     expect(s.phases[0].status).toBe("done");
-    expect(fs.existsSync(path.join(dir, "VERIFY.md"))).toBe(true);
+    expect(fs.readFileSync(path.join(dir, "NOTES.md"), "utf-8")).toContain("검수");
+    expect(fs.existsSync(path.join(dir, "VERIFY.md"))).toBe(false);
   });
 });

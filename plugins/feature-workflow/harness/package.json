@@ -1,7 +1,7 @@
 {
   "name": "@dolphago/feature-workflow-harness",
-  "version": "0.1.0",
-  "description": "feature-workflow unattended orchestration harness for PLAN/STATE/NOTES workflows",
+  "version": "0.2.0",
+  "description": "feature-workflow 무인 오케스트레이터 (Claude Agent SDK 하네스)",
   "type": "module",
   "private": true,
   "bin": {

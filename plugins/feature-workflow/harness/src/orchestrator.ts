@@ -619,7 +619,7 @@ export async function runVerificationStage(
       for (const role of verifyRoles) {
         // §45/§27 O2 — verify 는 done 이후의 부산물이라 상한 초과를 halted 로 되돌리지 않는다
         // (§30 P2 — 부산물이 정상 경로의 결론을 바꾸면 안 된다). 대신 남은 역할만 생략하고,
-        // 생략했다는 사실을 VERIFY.md 에 남긴다(§30 P4 — 조용한 생략은 "전부 검증했다" 로 읽힌다).
+        // 생략했다는 사실을 NOTES.md 에 남긴다(§30 P4 — 조용한 생략은 "전부 검증했다" 로 읽힌다).
         if (costCap != null && totalCostUsd(state) >= costCap) {
           verifySections.push(`## ${VERIFY_ROLE_LABEL[role]} 검증 — 생략됨 (비용 상한 $${costCap} 도달)`);
           deps.log(`verify ${VERIFY_ROLE_LABEL[role]} 역할 생략 — 비용 상한 도달`);
@@ -713,14 +713,13 @@ export async function runVerificationStage(
           saveState(workflowDir, state);
         }
       }
-      // §41 I-1 하위호환 — 역할이 하나(레거시 PLAN)면 VERIFY.md 는 기존과 동일하게 보고서
-      // 원문을 그대로 담는다(기존 테스트가 원문 일치를 못박고 있고, VERIFY.md 를 읽는 외부
-      // 스크립트가 있어도 깨지지 않는다). 여러 역할일 때만 역할별 절로 구분한다.
-      fs.writeFileSync(
-        path.join(workflowDir, "VERIFY.md"),
-        verifySections.length === 1 && verifyRoles.length === 1
-          ? verifySections[0]!.replace(/^## 평가 검증\n\n/, "")
-          : verifySections.join("\n\n"),
+      const report = verifySections.length === 1 && verifyRoles.length === 1
+        ? verifySections[0]!.replace(/^## 평가 검증\n\n/, "")
+        : verifySections.join("\n\n");
+      // 세션이 기록한 근거와 과거 검수를 보존한다. 기존 VERIFY.md는 수정하지 않는다.
+      fs.appendFileSync(
+        path.join(workflowDir, "NOTES.md"),
+        `\n\n## 하네스 검수 — ${deps.now()}\n\n${report}\n`,
       );
 }
 }

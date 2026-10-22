@@ -451,7 +451,7 @@ export function assemblePlan(state: InterviewState): string {
     : "";
   return `# ${oneLine(state.goal).slice(0, 80)}
 
-> **For agentic workers:** 이 문서는 전체 작업의 단일 출처(SoT)다. 작업 시작 전 NOTES.md 와 \`STATE.json\`(phase 별 \`next_steps\`) 을 반드시 읽고, 끝나면 갱신한다.
+> **For agentic workers:** 이 문서는 작업 계획과 결정 기록이다. 현재 동작은 관련 원천에서 재확인한다. 작업 시작 전 NOTES.md 와 \`STATE.json\`(phase 별 \`next_steps\`) 을 반드시 읽고, 끝나면 갱신한다.
 
 **Goal:** ${state.goal}
 
@@ -541,9 +541,20 @@ function renderMyObjections(state: InterviewState, role: InterviewRole): string 
   return `\n## 당신의 이전 초안에 제기된 이의 (반드시 해소하거나, 해소할 수 없으면 질문으로 되돌려라)\n${items}\n`;
 }
 
+const INTERVIEW_GROUNDING_RULES = `## 인터뷰 근거 규칙
+- 사실과 제안을 구분하라. 설계 제안은 제안으로 표시하고 현재 동작처럼 단정하지 마라.
+- 사실은 이번 세션에서 직접 읽은 소스·설정·실행 결과·사용자 자료로 확인하고,
+  초안 draft 또는 이의 detail에 file:line, 명령과 실제 출력, 사용자 답변 ID 같은 재확인 가능한 출처를 붙여라.
+- 다른 역할의 초안·과거 기록은 탐색 단서다. 현재 코드 동작의 증거로 대신 쓰지 마라.
+- 읽기 도구로 확인할 수 있는 것은 먼저 확인하라. 확인 수단이 없으면 미확정: 내용과 필요한 원천을 표시하라.
+- 식별자·경로·수치와 조건을 원문대로 유지하고, 원천 충돌은 양쪽 출처와 함께 밝혀라.
+- 읽기 전용 단계다. PLAN·NOTES·STATE를 포함해 파일을 작성하지 마라. 근거는 반환 초안·이의에 담아라.`;
+
 export function buildRoleInterviewPrompt(state: InterviewState, role: InterviewRole): string {
   const entries = state.entry_paths.length > 0 ? state.entry_paths.map(p => `- ${p}`).join("\n") : "(지정 안 됨)";
   return `${ROLE_INTERVIEW_MISSION[role]}
+
+${INTERVIEW_GROUNDING_RULES}
 
 ## 목표 (사용자가 직접 작성 — 고치지 마라)
 ${state.goal}
@@ -583,6 +594,8 @@ export function buildObjectionPrompt(state: InterviewState, role: InterviewRole)
     : `\n(이의 라운드 ${round}/${MAX_OBJECTION_ROUNDS} — 상한 도달 시 남은 판단은 사람에게 넘어간다)`;
   return `당신은 **${INTERVIEW_ROLE_LABEL[role]} 고수**다. 아래 다른 두 역할의 초안을 읽고 **이의를 제기하는 것**이 임무다.
 통과시키는 것이 목표가 아니다 — 당신의 관점에서 실행 불가능하거나, 검증 불가능하거나, 목표와 어긋나는 부분을 찾아라.${lastChance}${redrafted}
+
+${INTERVIEW_GROUNDING_RULES}
 
 ## 목표
 ${state.goal}

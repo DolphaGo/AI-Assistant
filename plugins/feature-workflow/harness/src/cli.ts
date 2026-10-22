@@ -405,7 +405,7 @@ export let program: Command;
   // (runVerificationStage)을 공유한다 — 여기만의 검증 로직은 없다(§30 P1).
   program
     .command("verify <workflowDir>")
-    .description("3역할 적대 검증 + 합의를 사후 실행해 VERIFY.md 를 갱신한다 (완료된 워크플로우 대상)")
+    .description("3역할 적대 검증 + 합의를 사후 실행해 NOTES.md에 검수를 누적한다 (완료된 워크플로우 대상)")
     .option("--budget <usd>", "이 실행에 추가로 허용할 비용 상한(USD) — 현재 누적 비용에 더해진다", "10")
     .action(async (workflowDir: string, opts: { budget: string }) => {
       const dir = resolveWorkflowDir(workflowDir);
@@ -435,7 +435,7 @@ export let program: Command;
           log: runLogger.log,
           pr: new GhPrClient(),
         }, null, { costCapUsd });
-        console.log(`\nVERIFY.md 갱신됨: ${path.join(dir, "VERIFY.md")}`);
+        console.log(`\nNOTES.md 검수 누적됨: ${path.join(dir, "NOTES.md")}`);
         console.log(`실행 로그: ${runLogger.path}`);
         console.log("\n" + formatReport(buildReport(loadState(dir))));
         process.exit(0);

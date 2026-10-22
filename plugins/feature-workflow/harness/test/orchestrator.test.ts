@@ -100,8 +100,31 @@ describe("runWorkflow", () => {
     const s = await runWorkflow(dir, d);
     expect(s.status).toBe("done");
     expect(s.phases.every(p => p.status === "done")).toBe(true);
-    expect(fs.readFileSync(path.join(dir, "VERIFY.md"), "utf-8")).toContain("이상 없음");
+    expect(fs.readFileSync(path.join(dir, "NOTES.md"), "utf-8")).toContain("이상 없음");
     expect(d.notes.some(n => n.includes("완료"))).toBe(true);
+  });
+
+  it("검수 보고서를 기존 NOTES에 누적하고 별도 VERIFY를 만들지 않는다", async () => {
+    saveState(dir, makeState());
+    const notesPath = path.join(dir, "NOTES.md");
+    const original = "# 작업 노트\n\n## 확인한 사실\nF1: src/a.ts:10의 조건을 확인했다.\n";
+    fs.writeFileSync(notesPath, original);
+    const legacyPath = path.join(dir, "VERIFY.md");
+    fs.writeFileSync(legacyPath, "과거 검수 원문");
+    const d = deps(stubRunner(["touch-and-done", "touch-and-done"]));
+    const state = await runWorkflow(dir, d);
+    await runVerificationStage(dir, state, d, null);
+    const notes = fs.readFileSync(notesPath, "utf-8");
+    expect(notes.startsWith(original)).toBe(true);
+    expect(notes.match(/이상 없음/g)).toHaveLength(2);
+    expect(fs.readFileSync(legacyPath, "utf-8")).toBe("과거 검수 원문");
+  });
+
+  it("새 워크플로우 검수는 NOTES만 만들고 VERIFY는 생성하지 않는다", async () => {
+    saveState(dir, makeState());
+    await runWorkflow(dir, deps(stubRunner(["touch-and-done", "touch-and-done"])));
+    expect(fs.existsSync(path.join(dir, "NOTES.md"))).toBe(true);
+    expect(fs.existsSync(path.join(dir, "VERIFY.md"))).toBe(false);
   });
 
   it("blocked 결과 시 질문 기록·알림·정지하고 attempt 를 소모하지 않는다", async () => {
@@ -221,7 +244,7 @@ describe("runWorkflow", () => {
   });
 
   // §45 — 적대적 3역할 검증. PLAN 에 절이 있으면 해당 역할이 돌고, 각 세션이 STATE 에 남는다.
-  it("PLAN 에 3절이 있으면 3역할 verify 가 돌고 VERIFY.md 가 역할별로 구분된다", async () => {
+  it("PLAN 에 3절이 있으면 3역할 verify 가 돌고 NOTES.md에 역할별로 기록된다", async () => {
     saveState(dir, makeState({ phases: [makeState().phases[0]] }));
     fs.writeFileSync(
       path.join(dir, "PLAN.md"),
@@ -244,13 +267,13 @@ describe("runWorkflow", () => {
     expect(rolesSeen).toEqual(["evaluation", "planning", "development"]);
     const verifySessions = s.phases[0].sessions.filter(x => x.kind === "verify");
     expect(verifySessions).toHaveLength(3);
-    const verifyMd = fs.readFileSync(path.join(dir, "VERIFY.md"), "utf-8");
+    const verifyMd = fs.readFileSync(path.join(dir, "NOTES.md"), "utf-8");
     expect(verifyMd).toContain("## 평가 검증");
     expect(verifyMd).toContain("## 기획 검증");
     expect(verifyMd).toContain("## 개발 검증");
   });
 
-  it("비용 상한 도달 시 남은 verify 역할을 생략하되 생략 사실을 VERIFY.md 에 남긴다 (§27 O2/§30 P4)", async () => {
+  it("비용 상한 도달 시 남은 verify 역할을 생략하되 생략 사실을 NOTES.md 에 남긴다 (§27 O2/§30 P4)", async () => {
     const base = makeState({ phases: [makeState().phases[0]] });
     base.max_cost_usd = 5;
     saveState(dir, base);
@@ -274,7 +297,7 @@ describe("runWorkflow", () => {
     const s = await runWorkflow(dir, deps(runner));
     expect(s.status).toBe("done"); // 상한 도달이 done 을 되돌리지 않는다 (§30 P2)
     expect(verifyCalls).toBe(1); // evaluation 만 돌고 planning/development 는 생략
-    const verifyMd = fs.readFileSync(path.join(dir, "VERIFY.md"), "utf-8");
+    const verifyMd = fs.readFileSync(path.join(dir, "NOTES.md"), "utf-8");
     expect(verifyMd).toContain("기획 검증 — 생략됨");
     expect(verifyMd).toContain("개발 검증 — 생략됨");
     expect(verifyMd).toContain("비용 상한");
@@ -313,7 +336,7 @@ describe("runWorkflow", () => {
     expect(s.next_goal_suggestions).toEqual(["다음: 회귀 테스트 보강"]);
     expect(loadState(dir).next_goal_suggestions).toEqual(["다음: 회귀 테스트 보강"]); // 디스크 영속
     // VERIFY.md 에 합의 절
-    expect(fs.readFileSync(path.join(dir, "VERIFY.md"), "utf-8")).toContain("## 합의");
+    expect(fs.readFileSync(path.join(dir, "NOTES.md"), "utf-8")).toContain("## 합의");
   });
 
   it("runner 에 runConsensus 가 없으면(레거시 스텁) 합의 없이 기존과 동일하게 완주한다", async () => {
@@ -333,7 +356,7 @@ describe("runWorkflow", () => {
     const s = await runWorkflow(dir, deps(runner));
     expect(s.status).toBe("done");
     expect(s.phases[0].sessions.some(x => x.kind === "consensus")).toBe(false);
-    expect(fs.readFileSync(path.join(dir, "VERIFY.md"), "utf-8")).not.toContain("## 합의");
+    expect(fs.readFileSync(path.join(dir, "NOTES.md"), "utf-8")).not.toContain("## 합의");
   });
 
   it("합의 세션 실패(null summary)는 실패로 기록하되 done 을 막지 않는다 (§30 P2)", async () => {
@@ -356,10 +379,10 @@ describe("runWorkflow", () => {
     const cs = s.phases[0].sessions.find(x => x.kind === "consensus")!;
     expect(cs.result).toBe("failed");
     expect(s.next_goal_suggestions).toBeUndefined();
-    expect(fs.readFileSync(path.join(dir, "VERIFY.md"), "utf-8")).toContain("## 합의 — 실패");
+    expect(fs.readFileSync(path.join(dir, "NOTES.md"), "utf-8")).toContain("## 합의 — 실패");
   });
 
-  it("PLAN 에 절이 없으면(레거시) evaluation 1역할 + VERIFY.md 원문 그대로 — 기존 계약 유지", async () => {
+  it("PLAN 에 절이 없으면 evaluation 1역할의 원문을 NOTES에 기록한다", async () => {
     saveState(dir, makeState({ phases: [makeState().phases[0]] }));
     // PLAN.md 자체를 만들지 않는다 — 레거시 워크플로우
     const rolesSeen: Array<string | undefined> = [];
@@ -376,7 +399,7 @@ describe("runWorkflow", () => {
     };
     await runWorkflow(dir, deps(runner));
     expect(rolesSeen).toEqual(["evaluation"]);
-    expect(fs.readFileSync(path.join(dir, "VERIFY.md"), "utf-8")).toBe("# 검증 보고\n이상 없음");
+    expect(fs.readFileSync(path.join(dir, "NOTES.md"), "utf-8")).toContain("# 검증 보고\n이상 없음");
   });
 
   it("done 상태로 시작하면 아무것도 하지 않는다 (verify 재실행/알림 재발 방지)", async () => {
@@ -3358,7 +3381,7 @@ describe("§41 I-1: verify 세션도 phase.sessions 에 기록되고 비용 상�
     });
     expect(verifySessions[0].verdict).toEqual({ outcome: "accepted" });
     // VERIFY.md 는 기존과 동일하게 report 원문을 그대로 담는다(§30 P2 회귀 — 기록 내용 불변)
-    expect(fs.readFileSync(path.join(dir, "VERIFY.md"), "utf-8")).toBe("# 검증 보고\n이상 없음");
+    expect(fs.readFileSync(path.join(dir, "NOTES.md"), "utf-8")).toContain("# 검증 보고\n이상 없음");
     // 디스크에도 확정 저장돼야 한다 — 메모리상의 반환값만 갱신되고 saveState 가 빠지면
     // 다음 `fw report`/`fw status` 가 이 세션을 영영 못 본다(§27 O2 의 존재 이유 그 자체).
     expect(loadState(dir).phases[1].sessions.some(sess => sess.kind === "verify")).toBe(true);
@@ -3622,7 +3645,7 @@ describe("runVerificationStage — §56", () => {
     const st = loadState(dir);
     await runVerificationStage(dir, st, deps(runner), null);
     expect(verifyCalls).toBe(0);
-    expect(fs.readFileSync(path.join(dir, "VERIFY.md"), "utf-8")).toContain("생략됨");
+    expect(fs.readFileSync(path.join(dir, "NOTES.md"), "utf-8")).toContain("생략됨");
   });
 
   it("costCapUsd 를 넉넉히 주면 상한 초과 상태에서도 역할·합의가 실제로 돈다", async () => {
@@ -3640,7 +3663,7 @@ describe("runVerificationStage — §56", () => {
     await runVerificationStage(dir, st, deps(runner), null, { costCapUsd: 100 });
     expect(verifyCalls).toBe(3);
     expect(consensusCalls).toBe(1);
-    const verifyMd = fs.readFileSync(path.join(dir, "VERIFY.md"), "utf-8");
+    const verifyMd = fs.readFileSync(path.join(dir, "NOTES.md"), "utf-8");
     expect(verifyMd).toContain("## 합의");
     expect(verifyMd).not.toContain("생략됨");
     // STATE 에 세션·다음 목표가 영속됐다 — verify/consensus 세션은 마지막 phase 에 붙는다(§41 I-1)

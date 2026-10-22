@@ -130,7 +130,7 @@ export function parseRemoteHost(url: string): string | null {
     const host = parsed.hostname.toLowerCase();
     // §41 m-1: 이 `.toLowerCase()` 의 mutation 은 이 분기에서 원리적으로 죽일 수 없다 —
     // WHATWG URL 스펙이 `hostname` getter 를 항상 소문자로 정규화해 반환하도록 못박고 있어서
-    // (실측: `new URL("https://GIT.LINECORP.COM/x").hostname === "ghe.example.com"`, IPv6
+    // (실측: `new URL("https://GHE.EXAMPLE.COM/x").hostname === "ghe.example.com"`, IPv6
     // 리터럴의 16진수도 동일), `new URL()` 을 거친 값은 이미 소문자다. SURVIVED 는 테스트 공백이
     // 아니라 이 지점의 구조적 성질이다 — 그래도 `new URL()` 내부 구현에 기대지 않는 명시적
     // 계약으로 남긴다(비용이 없고, scp-like 분기와 코드 형태를 맞춰 유지보수 시 한쪽만 지우는

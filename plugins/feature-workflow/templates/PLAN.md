@@ -1,6 +1,6 @@
 # {{ Feature Name }} Implementation Plan
 
-> **For agentic workers:** 이 문서는 전체 작업의 단일 출처(SoT)다. 작업 시작 전 [NOTES.md](./NOTES.md) 와 `STATE.json`(phase 별 `next_steps`) 을 반드시 읽고, 끝나면 갱신한다. 현황은 `fw status` 로 본다.
+> **For agentic workers:** 이 문서는 작업 계획과 결정 기록이다. 현재 동작은 관련 원천에서 재확인한다. 작업 시작 전 [NOTES.md](./NOTES.md) 와 `STATE.json`(phase 별 `next_steps`) 을 반드시 읽고, 끝나면 갱신한다. 현황은 `fw status` 로 본다.
 
 **Goal:** {{ 한 문장으로 목표 }}
 
@@ -11,6 +11,13 @@
 **참조 프로젝트:** {{ 있다면 경로 }}
 
 ---
+
+## 근거와 검증 기준
+
+사실은 이번 작업에서 확인한 원천과 출처를 NOTES의 확인한 사실(F ID)에 기록한다.
+실제 검증 명령·출력·종료 코드·범위는 검증(V ID)에 기록한다.
+현재 원천과 이전 기록이 다르면 차이와 처리 근거를 남긴다. 미확정은 확정하지 않는다.
+결정 표의 근거에는 사용자 결정 또는 NOTES의 F/V ID를 연결한다.
 
 ## 모듈/파일 구조 (목표)
 
@@ -80,7 +87,7 @@ B → C
 ## 산출 문서
 
 - [PLAN.md](./PLAN.md) — 본 문서 (마스터 플랜 · §핵심 결정 · §용어)
-- [NOTES.md](./NOTES.md) — 사람용 진행 메모 (이관 맵/리스크/트러블슈팅/결정 배경)
-- `STATE.json` — phase 목록·상태·시도·phase 별 `next_steps`(다음 작업 단계) — 기계 사실의 유일한 진실. 현황은 `fw status` 로 본다
+- [NOTES.md](./NOTES.md) — 사실·출처·검증·미확정·검수와 이관 맵/리스크/결정 배경
+- `STATE.json` — phase 목록·상태·시도·phase 별 `next_steps`(다음 작업 단계) — 기록된 기계 상태의 관리 기준. 현황은 `fw status` 로 본다
 
 문서는 이 **3종만** 쓴다. 결정 로그를 별도 파일로 분리하지 않는다 — 결정은 위 §핵심 결정 표에 둔다.

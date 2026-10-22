@@ -1,7 +1,32 @@
 # fw — feature-workflow 무인 하네스
 
-feature-workflow skill의 워크플로우(PLAN/STATE.json/NOTES 3종)를
+feature-workflow 스킬의 워크플로우(PLAN/STATE.json/NOTES 3종)를
 무인으로 끝까지 실행하는 오케스트레이터. 설계: `../../../specs/2026-08-26-feature-workflow-harness-design.md`
+
+## [Claude]·[Codex] 실행 범위
+
+현재 세션 실행은 `src/session.ts`의 `@anthropic-ai/claude-agent-sdk` `query()`를 사용합니다.
+Codex에서 작성한 PLAN·NOTES·STATE도 입력으로 사용할 수 있지만,
+`fw run`이 생성하는 세션은 Claude Agent SDK이며 그 인증이 필요합니다.
+Codex 세션으로 실행하는 `fw` 어댑터는 이 실행 경로에 없습니다.
+
+- **[Claude]** `/feature-workflow:start`로 준비하거나 `fw interview`로 시작합니다.
+- **[Codex]** feature-workflow 스킬 및 `commands/start.md`를 읽혀 기록을 준비합니다.
+  Codex로 계속 수행하려면 `commands/resume.md`를 읽혀 진행하고,
+  `fw`에 넘기려면 CLI 스키마·검증 명령과 무인 실행 권한을 검토합니다.
+
+설치와 기본 지침은 [[Claude] 가이드](../../../docs/usage/claude.md) ·
+[[Codex] 가이드](../../../docs/usage/codex.md)를 확인하세요.
+`fw run`은 커밋을 만들 수 있고, PR·push는 추가 설정·권한을 따릅니다.
+
+## 근거·기록 계약
+
+phase와 PR 수정 세션은 원천·출처·실제 검증 결과·미확정을 NOTES에 기록하도록 지시받습니다.
+검수 세션은 읽기 전용으로 원천을 대조하고 보고서를 반환합니다. 하네스는 해당 결과와 합의문을
+NOTES의 `하네스 검수` 절에 누적합니다. 기존 NOTES와 과거 VERIFY.md는 보존합니다.
+검수 보고서를 읽는 외부 도구는 NOTES의 검수 절을 사용해야 합니다.
+STATE의 스키마·무인 작성 소유권과 기존 권한 게이트는 유지합니다.
+이 규칙은 SDK 프롬프트 계약이며 모델이 생성한 사실의 진실성을 코드로 판정하는 게이트는 아닙니다.
 
 ## 설치 (최초 1회)
 
@@ -20,19 +45,19 @@ feature-workflow skill의 워크플로우(PLAN/STATE.json/NOTES 3종)를
 | 항목 | 요구 사항 | 확인 방법 |
 |---|---|---|
 | Node.js | ≥ 22.12.0 | `node -v` |
-| Harness Agent SDK 인증 | `claude setup-token` 실행 완료 또는 `ANTHROPIC_API_KEY` 환경변수 | `claude setup-token` 또는 `echo $ANTHROPIC_API_KEY` |
+| Agent SDK 인증 | Claude Agent SDK에서 사용할 인증 준비 | 비밀값을 출력하지 않고 준비 여부 확인. 실제 접근은 별도 세션으로 검증 |
 | `gh` 인증 (PR 모드만) | `gh auth login` 완료 | `gh auth status` |
-| OS | macOS (알림 사용) | `fw run` 은 완료/BLOCKED/FAILED 시 macOS 알림(`osascript`)을 띄운다 — 다른 OS 에서도 동작은 하지만 알림은 무음이다 |
+| 알림 | macOS `osascript`, Linux `notify-send`, stderr 배너 | 네이티브 알림 실패 시에도 배너를 출력한다. 구현: `src/notify.ts` |
 
 ## 사용 흐름
 
-1. 대상 리포에서 Claude Code 로 `/feature-workflow:start` → PLAN/NOTES/STATE.json 생성 (유인, phase 별 `next_steps` 포함)
+1. 대상 리포에서 [Claude] `/feature-workflow:start` 또는 [Codex] `commands/start.md` 읽기 → PLAN/NOTES/STATE.json 생성 (유인, phase 별 `next_steps` 포함)
 2. `fw run docs/<workflow>` → 무인 자율 주행 (phase 세션 spawn → 하네스가 검증 직접 판정 → 반복)
 3. macOS 알림:
    - `fw BLOCKED` → `fw status <dir>` 로 질문 확인 → `fw answer <dir> "<답>"` → `fw run <dir>` 재개
    - `fw FAILED` → `fw log <dir>` 로 세션 이력·비용·검증 로그 경로를 한눈에 확인, 필요 시
      `fw retry <dir> <phaseId>` 후 `fw run`
-   - `fw 완료 ✅` → `git log` 로 phase 별 커밋 리뷰, `VERIFY.md` 확인, `fw log <dir>` 로 밤새
+   - `fw 완료 ✅` → `git log` 로 phase 별 커밋 리뷰, `NOTES.md`의 검수 절 확인, `fw log <dir>` 로 밤새
      서사(세션 이력·비용) 재구성
 
 ## 브랜치 안전 (§19)

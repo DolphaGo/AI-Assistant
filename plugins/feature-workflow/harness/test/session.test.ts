@@ -23,6 +23,7 @@ import {
   formatPlanContextLog,
   formatSandboxLog,
   AgentSdkRunner,
+  InterviewAgentRunner,
   collectResult,
   STREAM_INACTIVITY_TIMEOUT_MS,
   isDegenerateConsensusSummary,
@@ -30,6 +31,7 @@ import {
   type FixPromptInput,
   type SdkResultLike,
 } from "../src/session.js";
+import { newInterview } from "../src/interview.js";
 import { PhaseSchema } from "../src/state.js";
 import type { RawComment } from "../src/pr.js";
 import type { PlanContext, PlanDiagnostics } from "../src/plan.js";
@@ -1065,6 +1067,14 @@ describe("maskSecrets — §27 O1 / §31 I3+I4 마스킹", () => {
       expect(maskSecrets(s)).toContain("MASKED");
     });
 
+    it("sk-*(OpenAI/Anthropic 계열)/sk_live_*(Stripe) API 키를 마스킹한다", () => {
+      const skDash = "sk-abcdefghijklmnopqrstuvwxyz123456";
+      expect(maskSecrets(`curl -H "x-api-key: ${skDash}"`)).not.toContain(skDash);
+      const skLive = ("sk_live_" + "51H8abcdefghijklmnopqrstuvwxyz");
+      expect(maskSecrets(skLive)).not.toContain(skLive);
+      expect(maskSecrets(skLive)).toContain("MASKED");
+    });
+
     it("AIza*(Google API 키) 를 마스킹한다 — -H 헤더 값 안에서도 접두만으로 잡힌다", () => {
       const key = "AIzaSyABCDEFGHIJKLMNOPQRSTUVWXYZ123456";
       const out = maskSecrets(`-H "X-Api-Key: ${key}"`); // §31 I3 실측 형태
@@ -1076,6 +1086,12 @@ describe("maskSecrets — §27 O1 / §31 I3+I4 마스킹", () => {
       const token = "ya29.a0AfH6SMDxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
       expect(maskSecrets(token)).not.toContain(token);
       expect(maskSecrets(token)).toContain("MASKED");
+    });
+
+    it("xoxb-/xoxp-/xapp-(Slack 토큰) 를 마스킹한다", () => {
+      expect(maskSecrets(("xoxb-" + "123456789012-123456789012-abcdefghijklmnopqrstuvwx"))).toContain("MASKED");
+      expect(maskSecrets("xoxp-123456789012-123456789012-abcdefghijklmnopqrstuvwx")).toContain("MASKED");
+      expect(maskSecrets("xapp-1-A012345678-1234567890123-abcdefghijklmnopqrstuvwx")).toContain("MASKED");
     });
 
     it("npm_*(npm 액세스 토큰) 를 마스킹한다", () => {
@@ -1211,8 +1227,8 @@ describe("maskSecrets — §27 O1 / §31 I3+I4 마스킹", () => {
   describe("§31 I4 회귀 — 경로/엔드포인트는 마스킹되지 않는다", () => {
     it("repo_root 밖 쓰기 DENY 메시지의 절대경로가 그대로 보존된다 (감사자 실측 재현)", () => {
       const msg =
-        "repo_root(/tmp/target-repo) 밖 쓰기는 금지입니다: " +
-        "/Users/al02628774/Desktop/LINE/other/x.ts";
+        "repo_root(/Users/example/Desktop/LINE/AI-Assistant) 밖 쓰기는 금지입니다: " +
+        "/Users/example/Desktop/LINE/other/x.ts";
       expect(maskSecrets(msg)).toBe(msg); // 완전히 그대로 — 어느 세그먼트도 마스킹되면 안 된다
     });
 
@@ -1239,7 +1255,7 @@ describe("maskSecrets — §27 O1 / §31 I3+I4 마스킹", () => {
     // macOS 사용자 디렉터리)가 §32 I-1 작업 중 실제로 한 번 깨졌다(수정 과정에서 발견해 바로
     // 고침 — 회귀 테스트로 고정한다).
     it("괄호로 감싼 절대경로(repo_root(...))는 대문자가 섞여 있어도 마스킹되지 않는다", () => {
-      const msg = "repo_root(/tmp/target-repo) 밖 쓰기는 금지입니다";
+      const msg = "repo_root(/Users/example/Desktop/LINE/AI-Assistant) 밖 쓰기는 금지입니다";
       expect(maskSecrets(msg)).toBe(msg);
     });
 
@@ -1305,6 +1321,13 @@ describe("maskSecrets — §27 O1 / §31 I3+I4 마스킹", () => {
       expect(out).toContain("MASKED");
     });
 
+    it("Slack incoming-webhook URL 이 통째로 마스킹된다 (URL 자체가 자격증명 — I4 경로 보존의 알려진 예외)", () => {
+      const url = ("https://hooks.slack.com/services/" + "T00000000/B00000000/XXXXXXXXXXXXXXXXXXXXXXXX");
+      const out = maskSecrets(`curl -X POST ${url} -d '{"text":"hi"}'`);
+      expect(out).not.toContain(url);
+      expect(out).toContain("MASKED");
+    });
+
     it("GCP 서비스 계정 private_key_id(순수 소문자 hex, 40자)가 따옴표 인용 문맥에서 마스킹된다", () => {
       const id = "a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0";
       const out = maskSecrets(`{"private_key_id":"${id}"}`);
@@ -1330,12 +1353,12 @@ describe("maskSecrets — §27 O1 / §31 I3+I4 마스킹", () => {
   // 산문이 보존되는지, authorization 뒤 한글 산문이 보존되는지를 회귀로 고정한다.
   describe("§32 I-2 — DENY 증거 보존 회귀 (자격증명 명령 화이트리스트 밖의 -u/-p, netrc 문맥 밖의 password)", () => {
     it("cp -p (자격증명과 무관한 -p) 는 첫 인자(경로)를 지우지 않는다", () => {
-      const msg = "cp -p /Users/al02628774/.aws/credentials /tmp/x";
+      const msg = "cp -p /Users/example/.aws/credentials /tmp/x";
       expect(maskSecrets(msg)).toBe(msg);
     });
 
     it("mkdir -p 는 경로를 지우지 않는다", () => {
-      const msg = "mkdir -p /Users/al02628774/some/deep/path";
+      const msg = "mkdir -p /Users/example/some/deep/path";
       expect(maskSecrets(msg)).toBe(msg);
     });
 
@@ -1460,6 +1483,8 @@ describe("AgentSdkRunner — §32 SURVIVED M63/M64/M65/M66: planContext·auditLo
     const call = (query as unknown as Mock).mock.calls[0]?.[0] as { prompt: string };
     expect(call.prompt).toContain("테스트결정마커XYZ99");
     expect(call.prompt).toContain("이 워크플로우의 확정 결정");
+    expect(call.prompt).toContain("file:line");
+    expect(call.prompt).toContain("미확정");
   });
 
   // §41 I-1 — runVerifyAgent 가 `Promise<string>` 이던 시절엔 cost/sessionId 가 통째로 사라져
@@ -2417,5 +2442,30 @@ describe("mapDecomposeResult", () => {
     } as never);
     expect(r.sessionId).toBe("d1");
     expect(r.costUsd).toBe(0.42);
+  });
+});
+
+
+describe("interview SDK grounding contract", () => {
+  it.each(["role", "objections"] as const)("%s: source evidence reaches SDK without requesting file writes", async (kind) => {
+    const output = kind === "role" ? { questions: [], draft: "제안 초안" } : { objections: [] };
+    (query as unknown as Mock).mockReset();
+    (query as unknown as Mock).mockImplementation(() => ({
+      [Symbol.asyncIterator]: async function* () {
+        yield { type: "result", subtype: "success", structured_output: output };
+      },
+    }));
+    const runner = new InterviewAgentRunner({ repoRoot: "/repo", verifyCommands: [], allowPush: false });
+    const state = newInterview("근거 기반 계획", ["src"]);
+    if (kind === "role") {
+      expect((await runner.runRole(state, "planning")).output).toEqual(output);
+    } else {
+      expect((await runner.runObjections(state, "evaluation")).objections).toEqual([]);
+    }
+    const call = (query as unknown as Mock).mock.calls[0]?.[0] as { prompt: string };
+    expect(call.prompt).toContain("file:line");
+    expect(call.prompt).toContain("미확정");
+    expect(call.prompt).toContain("사실과 제안");
+    expect(call.prompt).toContain("파일을 작성하지 마라");
   });
 });

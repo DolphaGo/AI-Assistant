@@ -144,7 +144,7 @@ Claude Code, Codex, OpenCode에서 재사용할 수 있는 배포용 플러그�
 
 ### feature-workflow 사용법
 
-`feature-workflow`는 큰 피처, 마이그레이션, 멀티모듈 리팩토링처럼 여러 세션에 걸치는 작업을 `PLAN.md`, `STATE.json`, `NOTES.md` 3종 문서로 이어가게 하는 범용 workflow skill입니다. Claude Code 명령, Codex skill package, OpenCode command adapter를 함께 포함하고, `plugins/feature-workflow/harness/`에는 선택적으로 사용할 수 있는 `fw` CLI 하네스가 있습니다.
+`feature-workflow`는 사실 확인과 계획·기록·검수를 통합한 기본 작업 방식입니다. 짧은 답변은 파일 없이 처리하고, 기록이 필요한 작업은 `PLAN.md`, `NOTES.md`, `STATE.json`으로 이어갑니다. Claude Code 명령, Codex skill package, OpenCode command adapter와 선택형 `fw` 하네스를 포함합니다.
 
 빠른 실행 예시:
 
