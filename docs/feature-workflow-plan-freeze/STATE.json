@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "workflow": "feature-workflow-plan-freeze",
+  "repo_root": "/Users/ad03030776/Desktop/DolphaGo/AI-Assistant",
+  "branch_strategy": "current",
+  "allow_push": true,
+  "verify_default": [
+    "git diff --check"
+  ],
+  "verify_timeout_ms": null,
+  "pr_mode": false,
+  "poll_interval_ms": 60000,
+  "base_branch": "master",
+  "max_fix_sessions": 10,
+  "trusted_comment_authors": [],
+  "pr_comment_mode": "trusted",
+  "status": "done",
+  "pending_question": null,
+  "answers": [],
+  "phases": [
+    {
+      "id": 1,
+      "title": "계획 고정 규칙 반영과 검증",
+      "status": "done",
+      "depends_on": [],
+      "verify": [],
+      "attempts": 1,
+      "max_attempts": 2,
+      "sessions": [],
+      "next_steps": []
+    }
+  ]
+}
